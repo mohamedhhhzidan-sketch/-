@@ -59,6 +59,7 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             overflow: hidden;
+            position: relative;
         }
         
         .flag {
@@ -67,6 +68,16 @@
             max-width: 250px;
             border: 2px solid white;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: opacity 0.3s ease;
+        }
+        
+        .flag.hidden {
+            opacity: 0;
+        }
+        
+        .question-mark {
+            font-size: 5rem;
+            color: rgba(255, 255, 255, 0.5);
         }
         
         .options-container {
@@ -187,7 +198,8 @@
         </div>
         
         <div class="flag-container">
-            <img id="flag" class="flag" src="" alt="علم الدولة">
+            <img id="flag" class="flag hidden" src="" alt="علم الدولة">
+            <div id="question-mark" class="question-mark">?</div>
         </div>
         
         <div class="timer" id="timer">1</div>
@@ -205,54 +217,65 @@
     </div>
 
     <script>
-        // بيانات الدول وأعلامها
+        // بيانات الدول وأعلامها (رموز أعلام حقيقية)
         const countries = [
-            { name: "مصر", flag: "🇪🇬" },
-            { name: "السعودية", flag: "🇸🇦" },
-            { name: "الإمارات", flag: "🇦🇪" },
-            { name: "الكويت", flag: "🇰🇼" },
-            { name: "قطر", flag: "🇶🇦" },
-            { name: "عمان", flag: "🇴🇲" },
-            { name: "البحرين", flag: "🇧🇭" },
-            { name: "الأردن", flag: "🇯🇴" },
-            { name: "لبنان", flag: "🇱🇧" },
-            { name: "سوريا", flag: "🇸🇾" },
-            { name: "العراق", flag: "🇮🇶" },
-            { name: "اليمن", flag: "🇾🇪" },
-            { name: "ليبيا", flag: "🇱🇾" },
-            { name: "تونس", flag: "🇹🇳" },
-            { name: "الجزائر", flag: "🇩🇿" },
-            { name: "المغرب", flag: "🇲🇦" },
-            { name: "السودان", flag: "🇸🇩" },
-            { name: "الصومال", flag: "🇸🇴" },
-            { name: "جيبوتي", flag: "🇩🇯" },
-            { name: "موريتانيا", flag: "🇲🇷" },
-            { name: "فلسطين", flag: "🇵🇸" },
-            { name: "الولايات المتحدة", flag: "🇺🇸" },
-            { name: "المملكة المتحدة", flag: "🇬🇧" },
-            { name: "فرنسا", flag: "🇫🇷" },
-            { name: "ألمانيا", flag: "🇩🇪" },
-            { name: "إيطاليا", flag: "🇮🇹" },
-            { name: "إسبانيا", flag: "🇪🇸" },
-            { name: "البرازيل", flag: "🇧🇷" },
-            { name: "الأرجنتين", flag: "🇦🇷" },
-            { name: "كندا", flag: "🇨🇦" },
-            { name: "أستراليا", flag: "🇦🇺" },
-            { name: "اليابان", flag: "🇯🇵" },
-            { name: "الصين", flag: "🇨🇳" },
-            { name: "روسيا", flag: "🇷🇺" },
-            { name: "الهند", flag: "🇮🇳" },
-            { name: "تركيا", flag: "🇹🇷" },
-            { name: "إيران", flag: "🇮🇷" },
-            { name: "باكستان", flag: "🇵🇰" },
-            { name: "أفغانستان", flag: "🇦🇫" },
-            { name: "كوريا الجنوبية", flag: "🇰🇷" }
+            { name: "مصر", flag: "https://flagcdn.com/w320/eg.png" },
+            { name: "السعودية", flag: "https://flagcdn.com/w320/sa.png" },
+            { name: "الإمارات", flag: "https://flagcdn.com/w320/ae.png" },
+            { name: "الكويت", flag: "https://flagcdn.com/w320/kw.png" },
+            { name: "قطر", flag: "https://flagcdn.com/w320/qa.png" },
+            { name: "عمان", flag: "https://flagcdn.com/w320/om.png" },
+            { name: "البحرين", flag: "https://flagcdn.com/w320/bh.png" },
+            { name: "الأردن", flag: "https://flagcdn.com/w320/jo.png" },
+            { name: "لبنان", flag: "https://flagcdn.com/w320/lb.png" },
+            { name: "سوريا", flag: "https://flagcdn.com/w320/sy.png" },
+            { name: "العراق", flag: "https://flagcdn.com/w320/iq.png" },
+            { name: "اليمن", flag: "https://flagcdn.com/w320/ye.png" },
+            { name: "ليبيا", flag: "https://flagcdn.com/w320/ly.png" },
+            { name: "تونس", flag: "https://flagcdn.com/w320/tn.png" },
+            { name: "الجزائر", flag: "https://flagcdn.com/w320/dz.png" },
+            { name: "المغرب", flag: "https://flagcdn.com/w320/ma.png" },
+            { name: "السودان", flag: "https://flagcdn.com/w320/sd.png" },
+            { name: "الصومال", flag: "https://flagcdn.com/w320/so.png" },
+            { name: "جيبوتي", flag: "https://flagcdn.com/w320/dj.png" },
+            { name: "موريتانيا", flag: "https://flagcdn.com/w320/mr.png" },
+            { name: "فلسطين", flag: "https://flagcdn.com/w320/ps.png" },
+            { name: "الولايات المتحدة", flag: "https://flagcdn.com/w320/us.png" },
+            { name: "المملكة المتحدة", flag: "https://flagcdn.com/w320/gb.png" },
+            { name: "فرنسا", flag: "https://flagcdn.com/w320/fr.png" },
+            { name: "ألمانيا", flag: "https://flagcdn.com/w320/de.png" },
+            { name: "إيطاليا", flag: "https://flagcdn.com/w320/it.png" },
+            { name: "إسبانيا", flag: "https://flagcdn.com/w320/es.png" },
+            { name: "البرازيل", flag: "https://flagcdn.com/w320/br.png" },
+            { name: "الأرجنتين", flag: "https://flagcdn.com/w320/ar.png" },
+            { name: "كندا", flag: "https://flagcdn.com/w320/ca.png" },
+            { name: "أستراليا", flag: "https://flagcdn.com/w320/au.png" },
+            { name: "اليابان", flag: "https://flagcdn.com/w320/jp.png" },
+            { name: "الصين", flag: "https://flagcdn.com/w320/cn.png" },
+            { name: "روسيا", flag: "https://flagcdn.com/w320/ru.png" },
+            { name: "الهند", flag: "https://flagcdn.com/w320/in.png" },
+            { name: "تركيا", flag: "https://flagcdn.com/w320/tr.png" },
+            { name: "إيران", flag: "https://flagcdn.com/w320/ir.png" },
+            { name: "باكستان", flag: "https://flagcdn.com/w320/pk.png" },
+            { name: "أفغانستان", flag: "https://flagcdn.com/w320/af.png" },
+            { name: "كوريا الجنوبية", flag: "https://flagcdn.com/w320/kr.png" },
+            { name: "كوريا الشمالية", flag: "https://flagcdn.com/w320/kp.png" },
+            { name: "فنلندا", flag: "https://flagcdn.com/w320/fi.png" },
+            { name: "السويد", flag: "https://flagcdn.com/w320/se.png" },
+            { name: "النرويج", flag: "https://flagcdn.com/w320/no.png" },
+            { name: "الدنمارك", flag: "https://flagcdn.com/w320/dk.png" },
+            { name: "هولندا", flag: "https://flagcdn.com/w320/nl.png" },
+            { name: "بلجيكا", flag: "https://flagcdn.com/w320/be.png" },
+            { name: "سويسرا", flag: "https://flagcdn.com/w320/ch.png" },
+            { name: "النمسا", flag: "https://flagcdn.com/w320/at.png" },
+            { name: "اليونان", flag: "https://flagcdn.com/w320/gr.png" }
         ];
 
         // عناصر DOM
         const startBtn = document.getElementById('start-btn');
         const nextBtn = document.getElementById('next-btn');
         const flagElement = document.getElementById('flag');
+        const questionMark = document.getElementById('question-mark');
         const optionsContainer = document.getElementById('options-container');
         const resultElement = document.getElementById('result');
         const scoreElement = document.getElementById('score');
@@ -268,6 +291,7 @@
         let timer;
         let timerCount = 1;
         let canAnswer = false;
+        let flagShown = false;
 
         // بدء اللعبة
         startBtn.addEventListener('click', startGame);
@@ -306,9 +330,6 @@
             const randomIndex = Math.floor(Math.random() * countries.length);
             currentQuestion = countries[randomIndex];
             
-            // عرض العلم
-            flagElement.textContent = currentQuestion.flag;
-            
             // إعداد الخيارات
             const options = getRandomOptions(currentQuestion.name);
             options.forEach(option => {
@@ -319,8 +340,39 @@
                 optionsContainer.appendChild(button);
             });
             
-            // بدء المؤقت
-            startTimer();
+            // إخفاء العلم وإظهار علامة الاستفهام
+            flagElement.classList.add('hidden');
+            questionMark.style.display = 'block';
+            
+            // بدء المؤقت لعرض العلم
+            startFlagTimer();
+        }
+
+        // بدء المؤقت لعرض العلم
+        function startFlagTimer() {
+            timerCount = 1;
+            timerElement.textContent = timerCount;
+            timerElement.style.color = '#FFD700';
+            
+            // عرض العلم لمدة ثانية واحدة
+            flagElement.src = currentQuestion.flag;
+            flagElement.classList.remove('hidden');
+            questionMark.style.display = 'none';
+            
+            timer = setInterval(() => {
+                timerCount--;
+                timerElement.textContent = timerCount;
+                
+                if (timerCount <= 0) {
+                    clearInterval(timer);
+                    // إخفاء العلم بعد ثانية
+                    flagElement.classList.add('hidden');
+                    questionMark.style.display = 'block';
+                    timerElement.textContent = 'اختر الإجابة';
+                    timerElement.style.color = '#4CAF50';
+                    canAnswer = true;
+                }
+            }, 1000);
         }
 
         // إعادة تعيين حالة السؤال
@@ -329,24 +381,10 @@
             resultElement.textContent = '';
             optionsContainer.innerHTML = '';
             canAnswer = false;
+            flagShown = false;
             timerCount = 1;
             timerElement.textContent = timerCount;
             timerElement.style.color = '#FFD700';
-        }
-
-        // بدء المؤقت
-        function startTimer() {
-            timer = setInterval(() => {
-                timerCount--;
-                timerElement.textContent = timerCount;
-                
-                if (timerCount <= 0) {
-                    clearInterval(timer);
-                    canAnswer = true;
-                    timerElement.textContent = 'اختر الإجابة';
-                    timerElement.style.color = '#4CAF50';
-                }
-            }, 1000);
         }
 
         // الحصول على خيارات عشوائية
@@ -404,6 +442,10 @@
             
             canAnswer = false;
             
+            // إظهار العلم مرة أخرى بعد الإجابة
+            flagElement.classList.remove('hidden');
+            questionMark.style.display = 'none';
+            
             // إظهار زر السؤال التالي بعد تأخير
             setTimeout(() => {
                 nextBtn.style.display = 'inline-block';
@@ -412,7 +454,9 @@
 
         // إنهاء اللعبة
         function endGame() {
-            flagElement.textContent = '🏁';
+            flagElement.classList.add('hidden');
+            questionMark.style.display = 'block';
+            questionMark.textContent = '🏁';
             resultElement.innerHTML = `
                 <h2>انتهت اللعبة!</h2>
                 <p>نقاطك النهائية: ${score}/${totalQuestions}</p>
