@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>موقع تسجيل وتحرير الصوت</title>
+    <title>موقع تسجيل وتعديل الصوت</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         :root {
             --primary-color: #4a6fa5;
@@ -11,6 +12,9 @@
             --accent-color: #ff7e5f;
             --light-color: #f5f7fa;
             --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
         }
         
         * {
@@ -24,6 +28,7 @@
             background-color: var(--light-color);
             color: var(--dark-color);
             line-height: 1.6;
+            padding-bottom: 50px;
         }
         
         .container {
@@ -39,6 +44,7 @@
             text-align: center;
             border-radius: 0 0 20px 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
         }
         
         h1 {
@@ -55,7 +61,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 30px;
-            margin-top: 40px;
+            margin-top: 20px;
         }
         
         .card {
@@ -101,7 +107,7 @@
         }
         
         .btn-record {
-            background-color: #e74c3c;
+            background-color: var(--danger-color);
         }
         
         .btn-record:hover {
@@ -109,11 +115,19 @@
         }
         
         .btn-stop {
-            background-color: var(--accent-color);
+            background-color: var(--warning-color);
         }
         
         .btn-stop:hover {
-            background-color: #e86a4f;
+            background-color: #e67e22;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
         }
         
         .btn:disabled {
@@ -162,6 +176,7 @@
             border-radius: 10px;
             margin: 20px 0;
             overflow: hidden;
+            position: relative;
         }
         
         .status {
@@ -174,7 +189,7 @@
         
         .status.recording {
             background-color: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
+            color: var(--danger-color);
         }
         
         .status.processing {
@@ -184,7 +199,43 @@
         
         .status.ready {
             background-color: rgba(46, 204, 113, 0.1);
-            color: #2ecc71;
+            color: var(--success-color);
+        }
+        
+        .voice-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .voice-option {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .voice-option:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+        
+        .voice-option.selected {
+            border-color: var(--primary-color);
+            background-color: rgba(74, 111, 165, 0.1);
+        }
+        
+        .voice-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .voice-name {
+            font-weight: 500;
         }
         
         .recordings-list {
@@ -220,6 +271,14 @@
             color: var(--primary-color);
         }
         
+        .timer {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            color: var(--primary-color);
+        }
+        
         footer {
             text-align: center;
             margin-top: 50px;
@@ -236,14 +295,18 @@
             h1 {
                 font-size: 2rem;
             }
+            
+            .voice-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
     <header>
         <div class="container">
-            <h1>موقع تسجيل وتحرير الصوت</h1>
-            <p class="subtitle">سجل صوتك، أزل الضوضاء وغير النبرة بسهولة</p>
+            <h1>موقع تسجيل وتعديل الصوت</h1>
+            <p class="subtitle">سجل صوتك وغير صوته بسهولة مع خيارات متعددة</p>
         </div>
     </header>
     
@@ -252,6 +315,8 @@
             <div class="card">
                 <h2>التسجيل والتحكم</h2>
                 <div class="controls">
+                    <div class="timer" id="timer">00:00</div>
+                    
                     <button id="recordBtn" class="btn btn-record">
                         <span>بدء التسجيل</span>
                     </button>
@@ -272,34 +337,64 @@
             </div>
             
             <div class="card">
-                <h2>تحرير الصوت</h2>
+                <h2>تغيير الصوت</h2>
                 <div class="controls">
-                    <div class="slider-container">
-                        <label for="noiseReduction">تقليل الضوضاء</label>
-                        <input type="range" id="noiseReduction" class="slider" min="0" max="100" value="50">
-                        <span id="noiseValue">50%</span>
+                    <h3>اختر نوع الصوت:</h3>
+                    <div class="voice-options">
+                        <div class="voice-option" data-voice="normal">
+                            <div class="voice-icon">🎙️</div>
+                            <div class="voice-name">عادي</div>
+                        </div>
+                        <div class="voice-option" data-voice="deep">
+                            <div class="voice-icon">🗿</div>
+                            <div class="voice-name">عميق</div>
+                        </div>
+                        <div class="voice-option" data-voice="high">
+                            <div class="voice-icon">🧚</div>
+                            <div class="voice-name">رفيع</div>
+                        </div>
+                        <div class="voice-option" data-voice="robot">
+                            <div class="voice-icon">🤖</div>
+                            <div class="voice-name">روبوت</div>
+                        </div>
+                        <div class="voice-option" data-voice="echo">
+                            <div class="voice-icon">🏔️</div>
+                            <div class="voice-name">صدى</div>
+                        </div>
+                        <div class="voice-option" data-voice="chipmunk">
+                            <div class="voice-icon">🐿️</div>
+                            <div class="voice-name">سنجاب</div>
+                        </div>
                     </div>
                     
                     <div class="slider-container">
-                        <label for="pitchControl">تغيير النبرة</label>
+                        <label for="pitchControl">درجة الصوت:</label>
                         <input type="range" id="pitchControl" class="slider" min="-12" max="12" value="0">
                         <span id="pitchValue">0 (عادي)</span>
                     </div>
                     
-                    <button id="applyEffects" class="btn" disabled>
-                        <span>تطبيق التعديلات</span>
+                    <div class="slider-container">
+                        <label for="speedControl">سرعة الصوت:</label>
+                        <input type="range" id="speedControl" class="slider" min="0.5" max="2" value="1" step="0.1">
+                        <span id="speedValue">1.0x (عادي)</span>
+                    </div>
+                    
+                    <button id="applyEffects" class="btn btn-success" disabled>
+                        <span>تطبيق التغييرات</span>
                     </button>
                     
                     <button id="downloadBtn" class="btn" disabled>
                         <span>تحميل الصوت</span>
                     </button>
                 </div>
-                
-                <div class="recordings-list">
-                    <h3>التسجيلات السابقة</h3>
-                    <div id="recordingsContainer">
-                        <!-- سيتم عرض التسجيلات هنا -->
-                    </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>التسجيلات السابقة</h2>
+            <div class="recordings-list">
+                <div id="recordingsContainer">
+                    <!-- سيتم عرض التسجيلات هنا -->
                 </div>
             </div>
         </div>
@@ -307,7 +402,7 @@
     
     <footer>
         <div class="container">
-            <p>تم التطوير باستخدام HTML وJavaScript - جاهز للرفع على GitHub</p>
+            <p>تم التطوير باستخدام HTML وJavaScript ومكتبة Tone.js - جاهز للرفع على GitHub</p>
         </div>
     </footer>
 
@@ -320,11 +415,13 @@
         const visualizer = document.getElementById('visualizer');
         const applyEffects = document.getElementById('applyEffects');
         const downloadBtn = document.getElementById('downloadBtn');
-        const noiseReduction = document.getElementById('noiseReduction');
         const pitchControl = document.getElementById('pitchControl');
-        const noiseValue = document.getElementById('noiseValue');
+        const speedControl = document.getElementById('speedControl');
         const pitchValue = document.getElementById('pitchValue');
+        const speedValue = document.getElementById('speedValue');
         const recordingsContainer = document.getElementById('recordingsContainer');
+        const timer = document.getElementById('timer');
+        const voiceOptions = document.querySelectorAll('.voice-option');
         
         // المتغيرات العامة
         let mediaRecorder;
@@ -337,6 +434,10 @@
         let canvas;
         let isRecording = false;
         let animationId;
+        let recordingStartTime;
+        let timerInterval;
+        let selectedVoice = 'normal';
+        let modifiedAudioBuffer = null;
         
         // تهيئة العناصر
         function init() {
@@ -348,14 +449,57 @@
             visualizer.appendChild(canvas);
             
             // تحديث قيم المنزلقات
-            noiseReduction.addEventListener('input', () => {
-                noiseValue.textContent = `${noiseReduction.value}%`;
-            });
-            
             pitchControl.addEventListener('input', () => {
                 const pitch = parseInt(pitchControl.value);
                 pitchValue.textContent = `${pitch > 0 ? '+' : ''}${pitch} ${pitch === 0 ? '(عادي)' : ''}`;
             });
+            
+            speedControl.addEventListener('input', () => {
+                const speed = parseFloat(speedControl.value);
+                speedValue.textContent = `${speed.toFixed(1)}x ${speed === 1 ? '(عادي)' : ''}`;
+            });
+            
+            // إضافة مستمعي الأحداث لأزرار الأصوات
+            voiceOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    voiceOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedVoice = option.getAttribute('data-voice');
+                    
+                    // ضبط قيم المنزلقات بناءً على الصوت المختار
+                    switch(selectedVoice) {
+                        case 'deep':
+                            pitchControl.value = -5;
+                            speedControl.value = 0.9;
+                            break;
+                        case 'high':
+                            pitchControl.value = 8;
+                            speedControl.value = 1.2;
+                            break;
+                        case 'robot':
+                            pitchControl.value = 0;
+                            speedControl.value = 1;
+                            break;
+                        case 'echo':
+                            pitchControl.value = 0;
+                            speedControl.value = 1;
+                            break;
+                        case 'chipmunk':
+                            pitchControl.value = 12;
+                            speedControl.value = 1.5;
+                            break;
+                        default: // normal
+                            pitchControl.value = 0;
+                            speedControl.value = 1;
+                    }
+                    
+                    pitchControl.dispatchEvent(new Event('input'));
+                    speedControl.dispatchEvent(new Event('input'));
+                });
+            });
+            
+            // تحديد الصوت العادي افتراضياً
+            document.querySelector('.voice-option[data-voice="normal"]').classList.add('selected');
             
             // تحميل التسجيلات المحفوظة
             loadRecordings();
@@ -381,10 +525,14 @@
                     audioChunks.push(event.data);
                 };
                 
-                mediaRecorder.onstop = () => {
+                mediaRecorder.onstop = async () => {
                     audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
                     audioUrl = URL.createObjectURL(audioBlob);
                     audioPlayer.src = audioUrl;
+                    
+                    // تحويل الـ Blob إلى AudioBuffer للمعالجة
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    modifiedAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                     
                     // تمكين أزرار التحرير والتحميل
                     applyEffects.disabled = false;
@@ -399,6 +547,10 @@
                     
                     status.textContent = 'التسجيل جاهز';
                     status.className = 'status ready';
+                    
+                    // إيقاف المؤقت
+                    clearInterval(timerInterval);
+                    timer.textContent = '00:00';
                 };
                 
                 mediaRecorder.start();
@@ -410,6 +562,11 @@
                 status.textContent = 'جاري التسجيل...';
                 status.className = 'status recording';
                 
+                // بدء المؤقت
+                recordingStartTime = Date.now();
+                updateTimer();
+                timerInterval = setInterval(updateTimer, 1000);
+                
                 // بدء التصور البصري
                 visualize();
                 
@@ -418,6 +575,14 @@
                 status.textContent = 'خطأ في الوصول إلى الميكروفون';
                 status.className = 'status recording';
             }
+        }
+        
+        // تحديث المؤقت
+        function updateTimer() {
+            const elapsedTime = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+            const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+            timer.textContent = `${minutes}:${seconds}`;
         }
         
         // إيقاف التسجيل
@@ -466,22 +631,94 @@
             draw();
         }
         
-        // تطبيق تأثيرات الصوت (محاكاة)
-        function applyAudioEffects() {
+        // تطبيق تأثيرات الصوت
+        async function applyAudioEffects() {
+            if (!modifiedAudioBuffer) return;
+            
             status.textContent = 'جاري معالجة الصوت...';
             status.className = 'status processing';
             
-            // محاكاة معالجة الصوت
-            setTimeout(() => {
-                // في التطبيق الحقيقي، هنا سيتم تطبيق خوارزميات معالجة الصوت
-                // مثل إزالة الضوضاء وتغيير النبرة باستخدام Web Audio API
+            try {
+                // إنشاء معالج الصوت باستخدام Tone.js
+                const player = new Tone.Player().toDestination();
                 
-                status.textContent = 'تم تطبيق التعديلات بنجاح';
+                // إنشاء تأثيرات بناءً على الصوت المختار
+                const pitchShift = new Tone.PitchShift().toDestination();
+                const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5).toDestination();
+                const distortion = new Tone.Distortion(0.5).toDestination();
+                const vibrato = new Tone.Vibrato(5, 0.5).toDestination();
+                
+                // ضبط المعلمات بناءً على الصوت المختار
+                let chain = player;
+                
+                switch(selectedVoice) {
+                    case 'deep':
+                        pitchShift.pitch = parseInt(pitchControl.value);
+                        chain = chain.connect(pitchShift);
+                        break;
+                    case 'high':
+                        pitchShift.pitch = parseInt(pitchControl.value);
+                        chain = chain.connect(pitchShift);
+                        break;
+                    case 'robot':
+                        distortion.distortion = 0.8;
+                        chain = chain.connect(distortion);
+                        pitchShift.pitch = 0;
+                        chain = chain.connect(pitchShift);
+                        break;
+                    case 'echo':
+                        feedbackDelay.delayTime.value = 0.3;
+                        feedbackDelay.feedback.value = 0.7;
+                        chain = chain.connect(feedbackDelay);
+                        break;
+                    case 'chipmunk':
+                        pitchShift.pitch = parseInt(pitchControl.value);
+                        chain = chain.connect(pitchShift);
+                        break;
+                    default: // normal
+                        // لا تأثيرات إضافية
+                }
+                
+                // تطبيق سرعة الصوت
+                player.playbackRate = parseFloat(speedControl.value);
+                
+                // تحميل الصوت في المشغل
+                await player.load(audioUrl);
+                
+                // إنشاء تسجيل جديد مع التأثيرات
+                const recorder = new Tone.Recorder();
+                chain.connect(recorder);
+                
+                // بدء التسجيل والتشغيل
+                recorder.start();
+                player.start();
+                
+                // الانتظار حتى ينتهي التشغيل
+                const duration = player.buffer.duration / player.playbackRate;
+                setTimeout(async () => {
+                    const recording = await recorder.stop();
+                    const url = URL.createObjectURL(recording);
+                    
+                    // تحديث مشغل الصوت
+                    audioPlayer.src = url;
+                    
+                    // حفظ الصوت المعدل
+                    modifiedAudioBuffer = await audioContext.decodeAudioData(
+                        await recording.arrayBuffer()
+                    );
+                    
+                    status.textContent = 'تم تطبيق التعديلات بنجاح';
+                    status.className = 'status ready';
+                    
+                    // تمكين زر التحميل بعد المعالجة
+                    downloadBtn.disabled = false;
+                }, duration * 1000 + 500);
+                
+            } catch (error) {
+                console.error('خطأ في معالجة الصوت:', error);
+                status.textContent = 'حدث خطأ أثناء معالجة الصوت';
                 status.className = 'status ready';
-                
-                // تمكين زر التحميل بعد المعالجة
-                downloadBtn.disabled = false;
-            }, 2000);
+            }
         }
         
         // تحميل الصوت
