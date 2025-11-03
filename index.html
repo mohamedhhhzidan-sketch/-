@@ -3,18 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>موقع تسجيل وتعديل الصوت</title>
+    <title>استوديو الصوت - تحويل الأصوات للبنات</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         :root {
-            --primary-color: #4a6fa5;
-            --secondary-color: #6b8cbc;
-            --accent-color: #ff7e5f;
-            --light-color: #f5f7fa;
-            --dark-color: #2c3e50;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
+            --primary-color: #e91e63;
+            --secondary-color: #ad1457;
+            --accent-color: #ff4081;
+            --light-color: #fce4ec;
+            --dark-color: #880e4f;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+            --pink-light: #f8bbd9;
+            --pink-medium: #f48fb1;
+            --purple-light: #e1bee7;
+            --purple-medium: #ce93d8;
         }
         
         * {
@@ -25,14 +29,15 @@
         }
         
         body {
-            background-color: var(--light-color);
+            background: linear-gradient(135deg, var(--light-color), var(--purple-light));
             color: var(--dark-color);
             line-height: 1.6;
             padding-bottom: 50px;
+            min-height: 100vh;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -42,19 +47,35 @@
             color: white;
             padding: 30px 0;
             text-align: center;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 0 0 25px 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
             margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" opacity="0.1"><path fill="white" d="M50,10 A40,40 0 1,1 50,90 A40,40 0 1,1 50,10 Z"/></svg>');
+            background-size: 80px;
         }
         
         h1 {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
         
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .main-content {
@@ -65,19 +86,30 @@
         }
         
         .card {
-            background: white;
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
             padding: 25px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
             flex: 1;
             min-width: 300px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
         .card h2 {
             color: var(--primary-color);
             margin-bottom: 20px;
-            padding-bottom: 10px;
+            padding-bottom: 12px;
             border-bottom: 2px solid var(--light-color);
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card h2::before {
+            content: "♪";
+            font-size: 1.8rem;
         }
         
         .controls {
@@ -90,152 +122,216 @@
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
+            padding: 14px 22px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.1rem;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
         }
         
         .btn:hover {
             background-color: var(--secondary-color);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
         }
         
         .btn-record {
-            background-color: var(--danger-color);
+            background: linear-gradient(135deg, var(--danger-color), #d32f2f);
         }
         
         .btn-record:hover {
-            background-color: #c0392b;
+            background: linear-gradient(135deg, #d32f2f, #b71c1c);
         }
         
         .btn-stop {
-            background-color: var(--warning-color);
+            background: linear-gradient(135deg, var(--warning-color), #f57c00);
         }
         
         .btn-stop:hover {
-            background-color: #e67e22;
+            background: linear-gradient(135deg, #f57c00, #e65100);
         }
         
         .btn-success {
-            background-color: var(--success-color);
+            background: linear-gradient(135deg, var(--success-color), #388e3c);
         }
         
         .btn-success:hover {
-            background-color: #27ae60;
+            background: linear-gradient(135deg, #388e3c, #1b5e20);
         }
         
         .btn:disabled {
-            background-color: #bdc3c7;
+            background: #bdbdbd;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
         
         .slider-container {
-            margin: 15px 0;
+            margin: 18px 0;
+            background: rgba(248, 187, 217, 0.2);
+            padding: 15px;
+            border-radius: 12px;
         }
         
         .slider-container label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--dark-color);
         }
         
         .slider {
             width: 100%;
-            height: 8px;
+            height: 10px;
             -webkit-appearance: none;
-            background: #e0e0e0;
-            border-radius: 5px;
+            background: linear-gradient(to right, var(--pink-light), var(--primary-color));
+            border-radius: 8px;
             outline: none;
         }
         
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             background: var(--primary-color);
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            border: 3px solid white;
         }
         
         .audio-player {
             width: 100%;
             margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         
         .visualizer {
             width: 100%;
-            height: 100px;
+            height: 120px;
             background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-            border-radius: 10px;
+            border-radius: 15px;
             margin: 20px 0;
             overflow: hidden;
             position: relative;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
         }
         
         .status {
-            padding: 10px;
-            border-radius: 8px;
-            margin: 15px 0;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 18px 0;
             text-align: center;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
         
         .status.recording {
-            background-color: rgba(231, 76, 60, 0.1);
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.15), rgba(229, 57, 53, 0.1));
             color: var(--danger-color);
+            border: 1px solid rgba(244, 67, 54, 0.3);
         }
         
         .status.processing {
-            background-color: rgba(52, 152, 219, 0.1);
-            color: #3498db;
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(30, 136, 229, 0.1));
+            color: #2196f3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
         }
         
         .status.ready {
-            background-color: rgba(46, 204, 113, 0.1);
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(56, 142, 60, 0.1));
             color: var(--success-color);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .voice-categories {
+            margin: 20px 0;
+        }
+        
+        .category-title {
+            font-size: 1.3rem;
+            margin: 20px 0 15px;
+            color: var(--secondary-color);
+            padding-bottom: 8px;
+            border-bottom: 2px dashed var(--pink-medium);
         }
         
         .voice-options {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 18px;
             margin: 20px 0;
         }
         
         .voice-option {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 15px;
+            background: white;
+            border: 2px solid var(--pink-light);
+            border-radius: 15px;
+            padding: 18px 12px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .voice-option::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-color);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
         
         .voice-option:hover {
             border-color: var(--primary-color);
-            transform: translateY(-3px);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.12);
+        }
+        
+        .voice-option:hover::before {
+            transform: scaleX(1);
         }
         
         .voice-option.selected {
             border-color: var(--primary-color);
-            background-color: rgba(74, 111, 165, 0.1);
+            background: linear-gradient(135deg, rgba(233, 30, 99, 0.1), rgba(156, 39, 176, 0.1));
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .voice-option.selected::before {
+            transform: scaleX(1);
         }
         
         .voice-icon {
-            font-size: 2rem;
-            margin-bottom: 10px;
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            display: block;
         }
         
         .voice-name {
-            font-weight: 500;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-color);
+        }
+        
+        .voice-desc {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
         }
         
         .recordings-list {
@@ -246,8 +342,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
+            padding: 15px;
             border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        
+        .recording-item:hover {
+            background: rgba(248, 187, 217, 0.1);
+            border-radius: 10px;
         }
         
         .recording-item:last-child {
@@ -260,31 +362,45 @@
         
         .recording-actions {
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
         
         .action-btn {
-            background: none;
-            border: none;
+            background: rgba(233, 30, 99, 0.1);
+            border: 1px solid rgba(233, 30, 99, 0.2);
+            border-radius: 8px;
             cursor: pointer;
             font-size: 1.2rem;
-            color: var(--primary-color);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(233, 30, 99, 0.2);
+            transform: scale(1.1);
         }
         
         .timer {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
             text-align: center;
-            margin: 10px 0;
+            margin: 15px 0;
             color: var(--primary-color);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
         
         footer {
             text-align: center;
             margin-top: 50px;
-            padding: 20px;
-            color: #7f8c8d;
-            border-top: 1px solid #ecf0f1;
+            padding: 25px;
+            color: var(--dark-color);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 20px 20px 0 0;
         }
         
         @media (max-width: 768px) {
@@ -293,7 +409,7 @@
             }
             
             h1 {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
             
             .voice-options {
@@ -305,8 +421,8 @@
 <body>
     <header>
         <div class="container">
-            <h1>موقع تسجيل وتعديل الصوت</h1>
-            <p class="subtitle">سجل صوتك وغير صوته بسهولة مع خيارات متعددة</p>
+            <h1>استوديو تحويل الصوت للبنات</h1>
+            <p class="subtitle">حوّل صوتك إلى مجموعة متنوعة من الأصوات النسائية بجودة عالية</p>
         </div>
     </header>
     
@@ -318,14 +434,14 @@
                     <div class="timer" id="timer">00:00</div>
                     
                     <button id="recordBtn" class="btn btn-record">
-                        <span>بدء التسجيل</span>
+                        <span>● بدء التسجيل</span>
                     </button>
                     <button id="stopBtn" class="btn btn-stop" disabled>
-                        <span>إيقاف التسجيل</span>
+                        <span>■ إيقاف التسجيل</span>
                     </button>
                     
                     <div class="status ready" id="status">
-                        جاهز للتسجيل
+                        جاهز للتسجيل - اضغط بدء التسجيل
                     </div>
                     
                     <div class="visualizer" id="visualizer">
@@ -337,33 +453,104 @@
             </div>
             
             <div class="card">
-                <h2>تغيير الصوت</h2>
+                <h2>تحويل الصوت</h2>
                 <div class="controls">
-                    <h3>اختر نوع الصوت:</h3>
-                    <div class="voice-options">
-                        <div class="voice-option" data-voice="normal">
-                            <div class="voice-icon">🎙️</div>
-                            <div class="voice-name">عادي</div>
+                    <h3>اختر نوع الصوت الأنثوي:</h3>
+                    
+                    <div class="voice-categories">
+                        <div class="category-title">🧚 الأصوات الرقيقة والناعمة</div>
+                        <div class="voice-options">
+                            <div class="voice-option" data-voice="soft-angelic">
+                                <div class="voice-icon">👼</div>
+                                <div class="voice-name">صوت ملاك</div>
+                                <div class="voice-desc">ناعم وهادئ مع نبرة سماوية</div>
+                            </div>
+                            <div class="voice-option" data-voice="gentle-whisper">
+                                <div class="voice-icon">🌙</div>
+                                <div class="voice-name">همسة لطيفة</div>
+                                <div class="voice-desc">صوت منخفض وناعم كالهمس</div>
+                            </div>
+                            <div class="voice-option" data-voice="sweet-melody">
+                                <div class="voice-icon">🎵</div>
+                                <div class="voice-name">نغمة حلوة</div>
+                                <div class="voice-desc">صوت رخيم مع نبرة موسيقية</div>
+                            </div>
                         </div>
-                        <div class="voice-option" data-voice="deep">
-                            <div class="voice-icon">🗿</div>
-                            <div class="voice-name">عميق</div>
+                        
+                        <div class="category-title">💁 الأصوات العصرية والطبيعية</div>
+                        <div class="voice-options">
+                            <div class="voice-option" data-voice="natural-girl">
+                                <div class="voice-icon">💁‍♀️</div>
+                                <div class="voice-name">فتاة عصرية</div>
+                                <div class="voice-desc">صوت طبيعي مع نبرة عصرية</div>
+                            </div>
+                            <div class="voice-option" data-voice="friendly-warm">
+                                <div class="voice-icon">😊</div>
+                                <div class="voice-name">صوت ودود</div>
+                                <div class="voice-desc">صوت دافئ وجذاب</div>
+                            </div>
+                            <div class="voice-option" data-voice="clear-articulate">
+                                <div class="voice-icon">🎤</div>
+                                <div class="voice-name">صوت واضح</div>
+                                <div class="voice-desc">نطق واضح مع إيقاع متزن</div>
+                            </div>
                         </div>
-                        <div class="voice-option" data-voice="high">
-                            <div class="voice-icon">🧚</div>
-                            <div class="voice-name">رفيع</div>
+                        
+                        <div class="category-title">👑 الأصوات القوية والواثقة</div>
+                        <div class="voice-options">
+                            <div class="voice-option" data-voice="confident-queen">
+                                <div class="voice-icon">👑</div>
+                                <div class="voice-name">ملكة واثقة</div>
+                                <div class="voice-desc">صوت قوي وواثق وجذاب</div>
+                            </div>
+                            <div class="voice-option" data-voice="professional-executive">
+                                <div class="voice-icon">💼</div>
+                                <div class="voice-name">مديرة محترفة</div>
+                                <div class="voice-desc">صوت احترافي مع نبرة سلطوية</div>
+                            </div>
+                            <div class="voice-option" data-voice="charismatic-leader">
+                                <div class="voice-icon">🌟</div>
+                                <div class="voice-name">قائدة كارزمية</div>
+                                <div class="voice-desc">صوت مؤثر مع حضور قوي</div>
+                            </div>
                         </div>
-                        <div class="voice-option" data-voice="robot">
-                            <div class="voice-icon">🤖</div>
-                            <div class="voice-name">روبوت</div>
+                        
+                        <div class="category-title">🎭 الأصوات التمثيلية والمميزة</div>
+                        <div class="voice-options">
+                            <div class="voice-option" data-voice="anime-girl">
+                                <div class="voice-icon">🎎</div>
+                                <div class="voice-name">فتاة أنمي</div>
+                                <div class="voice-desc">صوت حاد وعالي كشخصيات الأنمي</div>
+                            </div>
+                            <div class="voice-option" data-voice="fairytale-princess">
+                                <div class="voice-icon">🏰</div>
+                                <div class="voice-name">أميرة خيالية</div>
+                                <div class="voice-desc">صوت رقيق مع نبرة حالمة</div>
+                            </div>
+                            <div class="voice-option" data-voice="sultry-seductive">
+                                <div class="voice-icon">🌹</div>
+                                <div class="voice-name">صوت جذاب</div>
+                                <div class="voice-desc">نبرة منخفضة وجذابة</div>
+                            </div>
                         </div>
-                        <div class="voice-option" data-voice="echo">
-                            <div class="voice-icon">🏔️</div>
-                            <div class="voice-name">صدى</div>
-                        </div>
-                        <div class="voice-option" data-voice="chipmunk">
-                            <div class="voice-icon">🐿️</div>
-                            <div class="voice-name">سنجاب</div>
+                        
+                        <div class="category-title">🎤 الأصوات الإبداعية والمعدلة</div>
+                        <div class="voice-options">
+                            <div class="voice-option" data-voice="echo-diva">
+                                <div class="voice-icon">🎶</div>
+                                <div class="voice-name">مغنية صدى</div>
+                                <div class="voice-desc">صوت مع صدى كالأغاني</div>
+                            </div>
+                            <div class="voice-option" data-voice="chipmunk-girl">
+                                <div class="voice-icon">🐿️</div>
+                                <div class="voice-name">فتاة سريعة</div>
+                                <div class="voice-desc">صوت سريع وعالي النبرة</div>
+                            </div>
+                            <div class="voice-option" data-voice="robotic-female">
+                                <div class="voice-icon">🤖</div>
+                                <div class="voice-name">فتاة روبوت</div>
+                                <div class="voice-desc">صوت إلكتروني مع نبرة معدنية</div>
+                            </div>
                         </div>
                     </div>
                     
@@ -379,12 +566,18 @@
                         <span id="speedValue">1.0x (عادي)</span>
                     </div>
                     
+                    <div class="slider-container">
+                        <label for="reverbControl">الصدى:</label>
+                        <input type="range" id="reverbControl" class="slider" min="0" max="100" value="0">
+                        <span id="reverbValue">0 (بدون صدى)</span>
+                    </div>
+                    
                     <button id="applyEffects" class="btn btn-success" disabled>
-                        <span>تطبيق التغييرات</span>
+                        <span>✨ تطبيق التحويل</span>
                     </button>
                     
                     <button id="downloadBtn" class="btn" disabled>
-                        <span>تحميل الصوت</span>
+                        <span>📥 تحميل الصوت</span>
                     </button>
                 </div>
             </div>
@@ -402,7 +595,7 @@
     
     <footer>
         <div class="container">
-            <p>تم التطوير باستخدام HTML وJavaScript ومكتبة Tone.js - جاهز للرفع على GitHub</p>
+            <p>استوديو تحويل الصوت للبنات - تم التطوير باستخدام HTML وJavaScript ومكتبة Tone.js</p>
         </div>
     </footer>
 
@@ -417,8 +610,10 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const pitchControl = document.getElementById('pitchControl');
         const speedControl = document.getElementById('speedControl');
+        const reverbControl = document.getElementById('reverbControl');
         const pitchValue = document.getElementById('pitchValue');
         const speedValue = document.getElementById('speedValue');
+        const reverbValue = document.getElementById('reverbValue');
         const recordingsContainer = document.getElementById('recordingsContainer');
         const timer = document.getElementById('timer');
         const voiceOptions = document.querySelectorAll('.voice-option');
@@ -436,8 +631,27 @@
         let animationId;
         let recordingStartTime;
         let timerInterval;
-        let selectedVoice = 'normal';
+        let selectedVoice = 'natural-girl';
         let modifiedAudioBuffer = null;
+        
+        // إعدادات الأصوات
+        const voiceSettings = {
+            'soft-angelic': { pitch: 8, speed: 0.9, reverb: 30, eq: { low: 2, mid: -1, high: 3 } },
+            'gentle-whisper': { pitch: 6, speed: 0.8, reverb: 20, eq: { low: 1, mid: 0, high: 2 } },
+            'sweet-melody': { pitch: 7, speed: 1, reverb: 25, eq: { low: 0, mid: 2, high: 4 } },
+            'natural-girl': { pitch: 5, speed: 1, reverb: 10, eq: { low: 0, mid: 0, high: 0 } },
+            'friendly-warm': { pitch: 4, speed: 1.1, reverb: 15, eq: { low: 2, mid: 1, high: 0 } },
+            'clear-articulate': { pitch: 6, speed: 1, reverb: 5, eq: { low: -1, mid: 2, high: 3 } },
+            'confident-queen': { pitch: 3, speed: 0.9, reverb: 20, eq: { low: 3, mid: 1, high: 1 } },
+            'professional-executive': { pitch: 2, speed: 1, reverb: 10, eq: { low: 2, mid: 2, high: 0 } },
+            'charismatic-leader': { pitch: 1, speed: 0.95, reverb: 25, eq: { low: 3, mid: 0, high: 1 } },
+            'anime-girl': { pitch: 12, speed: 1.3, reverb: 15, eq: { low: -2, mid: 0, high: 4 } },
+            'fairytale-princess': { pitch: 9, speed: 0.85, reverb: 40, eq: { low: 1, mid: 2, high: 3 } },
+            'sultry-seductive': { pitch: -2, speed: 0.8, reverb: 20, eq: { low: 4, mid: 1, high: -1 } },
+            'echo-diva': { pitch: 5, speed: 1, reverb: 80, eq: { low: 2, mid: 1, high: 3 } },
+            'chipmunk-girl': { pitch: 10, speed: 1.5, reverb: 10, eq: { low: -2, mid: 0, high: 4 } },
+            'robotic-female': { pitch: 0, speed: 1, reverb: 5, eq: { low: 0, mid: 0, high: 0 } }
+        };
         
         // تهيئة العناصر
         function init() {
@@ -459,6 +673,11 @@
                 speedValue.textContent = `${speed.toFixed(1)}x ${speed === 1 ? '(عادي)' : ''}`;
             });
             
+            reverbControl.addEventListener('input', () => {
+                const reverb = parseInt(reverbControl.value);
+                reverbValue.textContent = `${reverb}% ${reverb === 0 ? '(بدون صدى)' : ''}`;
+            });
+            
             // إضافة مستمعي الأحداث لأزرار الأصوات
             voiceOptions.forEach(option => {
                 option.addEventListener('click', () => {
@@ -466,43 +685,31 @@
                     option.classList.add('selected');
                     selectedVoice = option.getAttribute('data-voice');
                     
-                    // ضبط قيم المنزلقات بناءً على الصوت المختار
-                    switch(selectedVoice) {
-                        case 'deep':
-                            pitchControl.value = -5;
-                            speedControl.value = 0.9;
-                            break;
-                        case 'high':
-                            pitchControl.value = 8;
-                            speedControl.value = 1.2;
-                            break;
-                        case 'robot':
-                            pitchControl.value = 0;
-                            speedControl.value = 1;
-                            break;
-                        case 'echo':
-                            pitchControl.value = 0;
-                            speedControl.value = 1;
-                            break;
-                        case 'chipmunk':
-                            pitchControl.value = 12;
-                            speedControl.value = 1.5;
-                            break;
-                        default: // normal
-                            pitchControl.value = 0;
-                            speedControl.value = 1;
-                    }
-                    
-                    pitchControl.dispatchEvent(new Event('input'));
-                    speedControl.dispatchEvent(new Event('input'));
+                    // تطبيق الإعدادات التلقائية للصوت المختار
+                    applyVoiceSettings(selectedVoice);
                 });
             });
             
-            // تحديد الصوت العادي افتراضياً
-            document.querySelector('.voice-option[data-voice="normal"]').classList.add('selected');
+            // تحديد الصوت الافتراضي
+            document.querySelector('.voice-option[data-voice="natural-girl"]').classList.add('selected');
+            applyVoiceSettings('natural-girl');
             
             // تحميل التسجيلات المحفوظة
             loadRecordings();
+        }
+        
+        // تطبيق إعدادات الصوت المختار
+        function applyVoiceSettings(voice) {
+            const settings = voiceSettings[voice];
+            if (settings) {
+                pitchControl.value = settings.pitch;
+                speedControl.value = settings.speed;
+                reverbControl.value = settings.reverb;
+                
+                pitchControl.dispatchEvent(new Event('input'));
+                speedControl.dispatchEvent(new Event('input'));
+                reverbControl.dispatchEvent(new Event('input'));
+            }
         }
         
         // بدء التسجيل
@@ -545,7 +752,7 @@
                     cancelAnimationFrame(animationId);
                     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
                     
-                    status.textContent = 'التسجيل جاهز';
+                    status.textContent = 'التسجيل جاهز للتحويل';
                     status.className = 'status ready';
                     
                     // إيقاف المؤقت
@@ -559,7 +766,7 @@
                 recordBtn.disabled = true;
                 stopBtn.disabled = false;
                 
-                status.textContent = 'جاري التسجيل...';
+                status.textContent = 'جاري التسجيل... تحدث الآن';
                 status.className = 'status recording';
                 
                 // بدء المؤقت
@@ -572,7 +779,7 @@
                 
             } catch (error) {
                 console.error('خطأ في الوصول إلى الميكروفون:', error);
-                status.textContent = 'خطأ في الوصول إلى الميكروفون';
+                status.textContent = 'خطأ في الوصول إلى الميكروفون - تأكد من السماح بالوصول';
                 status.className = 'status recording';
             }
         }
@@ -621,7 +828,12 @@
                 for (let i = 0; i < bufferLength; i++) {
                     barHeight = dataArray[i] / 2;
                     
-                    canvasCtx.fillStyle = `rgb(${barHeight + 100}, 50, 150)`;
+                    // تدرج ألوان وردي
+                    const gradient = canvasCtx.createLinearGradient(0, canvas.height - barHeight, 0, canvas.height);
+                    gradient.addColorStop(0, '#e91e63');
+                    gradient.addColorStop(1, '#f48fb1');
+                    
+                    canvasCtx.fillStyle = gradient;
                     canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
                     
                     x += barWidth + 1;
@@ -635,48 +847,60 @@
         async function applyAudioEffects() {
             if (!modifiedAudioBuffer) return;
             
-            status.textContent = 'جاري معالجة الصوت...';
+            status.textContent = 'جاري تحويل الصوت... قد يستغرق بضع ثوان';
             status.className = 'status processing';
+            applyEffects.disabled = true;
             
             try {
                 // إنشاء معالج الصوت باستخدام Tone.js
+                await Tone.start();
                 const player = new Tone.Player().toDestination();
                 
                 // إنشاء تأثيرات بناءً على الصوت المختار
-                const pitchShift = new Tone.PitchShift().toDestination();
-                const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5).toDestination();
-                const distortion = new Tone.Distortion(0.5).toDestination();
-                const vibrato = new Tone.Vibrato(5, 0.5).toDestination();
+                const pitchShift = new Tone.PitchShift({
+                    pitch: parseInt(pitchControl.value)
+                }).toDestination();
+                
+                const reverb = new Tone.Reverb({
+                    decay: parseFloat(reverbControl.value) / 20,
+                    wet: parseFloat(reverbControl.value) / 100
+                }).toDestination();
+                
+                const feedbackDelay = new Tone.FeedbackDelay("8n", 0.3).toDestination();
+                const distortion = new Tone.Distortion(0.3).toDestination();
+                const vibrato = new Tone.Vibrato(5, 0.3).toDestination();
+                const eq = new Tone.EQ3(0, 0, 0).toDestination();
                 
                 // ضبط المعلمات بناءً على الصوت المختار
+                const settings = voiceSettings[selectedVoice];
                 let chain = player;
                 
-                switch(selectedVoice) {
-                    case 'deep':
-                        pitchShift.pitch = parseInt(pitchControl.value);
-                        chain = chain.connect(pitchShift);
-                        break;
-                    case 'high':
-                        pitchShift.pitch = parseInt(pitchControl.value);
-                        chain = chain.connect(pitchShift);
-                        break;
-                    case 'robot':
-                        distortion.distortion = 0.8;
-                        chain = chain.connect(distortion);
-                        pitchShift.pitch = 0;
-                        chain = chain.connect(pitchShift);
-                        break;
-                    case 'echo':
-                        feedbackDelay.delayTime.value = 0.3;
-                        feedbackDelay.feedback.value = 0.7;
-                        chain = chain.connect(feedbackDelay);
-                        break;
-                    case 'chipmunk':
-                        pitchShift.pitch = parseInt(pitchControl.value);
-                        chain = chain.connect(pitchShift);
-                        break;
-                    default: // normal
-                        // لا تأثيرات إضافية
+                // تطبيق EQ
+                if (settings && settings.eq) {
+                    eq.low.value = settings.eq.low;
+                    eq.mid.value = settings.eq.mid;
+                    eq.high.value = settings.eq.high;
+                    chain = chain.connect(eq);
+                }
+                
+                // بناء سلسلة التأثيرات
+                chain = chain.connect(pitchShift);
+                
+                if (parseInt(reverbControl.value) > 10) {
+                    chain = chain.connect(reverb);
+                }
+                
+                // تأثيرات إضافية بناءً على نوع الصوت
+                if (selectedVoice.includes('echo')) {
+                    chain = chain.connect(feedbackDelay);
+                }
+                
+                if (selectedVoice.includes('robotic')) {
+                    chain = chain.connect(distortion);
+                }
+                
+                if (selectedVoice.includes('melody') || selectedVoice.includes('angelic')) {
+                    chain = chain.connect(vibrato);
                 }
                 
                 // تطبيق سرعة الصوت
@@ -690,8 +914,7 @@
                 chain.connect(recorder);
                 
                 // بدء التسجيل والتشغيل
-                recorder.start();
-                player.start();
+                await Promise.all([recorder.start(), player.start()]);
                 
                 // الانتظار حتى ينتهي التشغيل
                 const duration = player.buffer.duration / player.playbackRate;
@@ -701,23 +924,25 @@
                     
                     // تحديث مشغل الصوت
                     audioPlayer.src = url;
+                    audioBlob = recording;
+                    audioUrl = url;
                     
-                    // حفظ الصوت المعدل
-                    modifiedAudioBuffer = await audioContext.decodeAudioData(
-                        await recording.arrayBuffer()
-                    );
-                    
-                    status.textContent = 'تم تطبيق التعديلات بنجاح';
+                    status.textContent = 'تم تحويل الصوت بنجاح! استمع إلى النتيجة';
                     status.className = 'status ready';
+                    applyEffects.disabled = false;
                     
                     // تمكين زر التحميل بعد المعالجة
                     downloadBtn.disabled = false;
+                    
+                    // حفظ التسجيل المعدل
+                    saveRecording(recording);
                 }, duration * 1000 + 500);
                 
             } catch (error) {
                 console.error('خطأ في معالجة الصوت:', error);
-                status.textContent = 'حدث خطأ أثناء معالجة الصوت';
+                status.textContent = 'حدث خطأ أثناء معالجة الصوت - حاول مرة أخرى';
                 status.className = 'status ready';
+                applyEffects.disabled = false;
             }
         }
         
@@ -726,7 +951,7 @@
             if (audioBlob) {
                 const a = document.createElement('a');
                 a.href = audioUrl;
-                a.download = `تسجيل-صوت-معدل-${new Date().toISOString().slice(0, 19)}.wav`;
+                a.download = `صوت-معدل-${selectedVoice}-${new Date().toISOString().slice(0, 19)}.wav`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -739,7 +964,8 @@
             const recording = {
                 id: Date.now(),
                 url: URL.createObjectURL(blob),
-                timestamp: new Date().toLocaleString('ar-EG')
+                timestamp: new Date().toLocaleString('ar-EG'),
+                voiceType: selectedVoice
             };
             
             recordings.unshift(recording);
@@ -755,7 +981,7 @@
             recordingsContainer.innerHTML = '';
             
             if (recordings.length === 0) {
-                recordingsContainer.innerHTML = '<p>لا توجد تسجيلات سابقة</p>';
+                recordingsContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">لا توجد تسجيلات سابقة</p>';
                 return;
             }
             
@@ -765,11 +991,12 @@
                 
                 item.innerHTML = `
                     <div class="recording-info">
-                        <p>تسجيل ${recording.timestamp}</p>
+                        <p><strong>${recording.timestamp}</strong></p>
+                        <p style="font-size: 0.9rem; color: #666;">نوع الصوت: ${getVoiceName(recording.voiceType)}</p>
                     </div>
                     <div class="recording-actions">
-                        <button class="action-btn play-btn" data-id="${recording.id}">▶️</button>
-                        <button class="action-btn delete-btn" data-id="${recording.id}">🗑️</button>
+                        <button class="action-btn play-btn" data-id="${recording.id}" title="تشغيل">▶️</button>
+                        <button class="action-btn delete-btn" data-id="${recording.id}" title="حذف">🗑️</button>
                     </div>
                 `;
                 
@@ -790,6 +1017,29 @@
                     deleteRecording(id);
                 });
             });
+        }
+        
+        // الحصول على اسم الصوت
+        function getVoiceName(voiceType) {
+            const voiceMap = {
+                'soft-angelic': 'صوت ملاك',
+                'gentle-whisper': 'همسة لطيفة',
+                'sweet-melody': 'نغمة حلوة',
+                'natural-girl': 'فتاة عصرية',
+                'friendly-warm': 'صوت ودود',
+                'clear-articulate': 'صوت واضح',
+                'confident-queen': 'ملكة واثقة',
+                'professional-executive': 'مديرة محترفة',
+                'charismatic-leader': 'قائدة كارزمية',
+                'anime-girl': 'فتاة أنمي',
+                'fairytale-princess': 'أميرة خيالية',
+                'sultry-seductive': 'صوت جذاب',
+                'echo-diva': 'مغنية صدى',
+                'chipmunk-girl': 'فتاة سريعة',
+                'robotic-female': 'فتاة روبوت'
+            };
+            
+            return voiceMap[voiceType] || 'غير معروف';
         }
         
         // تشغيل تسجيل محفوظ
