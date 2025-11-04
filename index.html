@@ -3,625 +3,355 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استنساخ الصوت - تطبيق معدل</title>
+    <title>محول النص إلى كلام</title>
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             color: #fff;
             min-height: 100vh;
             padding: 20px;
-            direction: rtl;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .container {
             max-width: 800px;
-            margin: 0 auto;
-            background: rgba(0, 0, 0, 0.7);
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        
-        header {
-            text-align: center;
-            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
         }
         
         h1 {
+            text-align: center;
+            margin-bottom: 30px;
             font-size: 2.5rem;
-            margin-bottom: 10px;
-            color: #fdbb2d;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
         
-        .api-setup {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 20px;
+        .text-input {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 1.1rem;
+            resize: vertical;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
             margin-bottom: 25px;
         }
         
-        .step {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 25px;
-            transition: all 0.3s ease;
+        .control-group {
+            flex: 1;
+            min-width: 200px;
         }
         
-        .step-title {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            color: #fdbb2d;
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
         }
         
-        .step-number {
-            background: #fdbb2d;
-            color: #000;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        select, input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 1rem;
+        }
+        
+        .range-value {
+            display: inline-block;
             margin-left: 10px;
             font-weight: bold;
         }
         
-        .recorder {
+        .buttons {
             display: flex;
-            flex-direction: column;
-            align-items: center;
             gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         
-        .record-btn, .generate-btn, .clone-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
+        button {
             padding: 12px 25px;
+            border: none;
             border-radius: 50px;
             font-size: 1.1rem;
+            font-weight: bold;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
             transition: all 0.3s ease;
-            margin: 10px 0;
-        }
-        
-        .record-btn:hover, .generate-btn:hover, .clone-btn:hover {
-            transform: scale(1.05);
-        }
-        
-        .record-btn.recording {
-            background: #2ecc71;
-            animation: pulse 1.5s infinite;
-        }
-        
-        .generate-btn, .clone-btn {
-            background: #3498db;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        
-        .audio-visualizer {
-            width: 100%;
-            height: 80px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            margin: 15px 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            gap: 8px;
+            min-width: 150px;
         }
         
-        .visualizer-bars {
-            display: flex;
-            align-items: flex-end;
-            height: 60px;
-            gap: 3px;
-        }
-        
-        .bar {
-            width: 6px;
-            background: #fdbb2d;
-            border-radius: 3px;
-        }
-        
-        textarea {
-            width: 100%;
-            height: 120px;
-            padding: 15px;
-            border-radius: 10px;
-            border: none;
-            background: rgba(255, 255, 255, 0.1);
+        .play-btn {
+            background: #4CAF50;
             color: white;
-            font-size: 1rem;
-            resize: vertical;
-            margin-bottom: 15px;
         }
         
-        .audio-player {
-            width: 100%;
-            margin-top: 15px;
+        .pause-btn {
+            background: #FF9800;
+            color: white;
         }
         
-        .loading {
-            display: none;
+        .stop-btn {
+            background: #F44336;
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .status {
             text-align: center;
-            margin: 20px 0;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
         }
         
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #fdbb2d;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .error {
-            background: #e74c3c;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: none;
-        }
-        
-        .success {
-            background: #2ecc71;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: none;
-        }
-        
-        .info-box {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-        }
-        
-        footer {
-            text-align: center;
+        .feature-list {
             margin-top: 30px;
-            color: #aaa;
-            font-size: 0.9rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .feature i {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            button {
+                min-width: 120px;
+                padding: 10px 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <h1>✨ محول النص إلى كلام ✨</h1>
+    
     <div class="container">
-        <header>
-            <h1>استنساخ الصوت - النسخة المعدلة</h1>
-            <p>تم إصلاح مشكلة الاتصال مع API</p>
-        </header>
-
-        <div class="info-box">
-            <h3>🎯 الحل البديل</h3>
-            <p>بما أن Fish Audio API يواجه مشاكل، سنستخدم تقنية محاكاة ذكية مع حفظ صوتك محلياً.</p>
-        </div>
+        <textarea class="text-input" placeholder="اكتب النص الذي تريد تحويله إلى كلام هنا..."></textarea>
         
-        <div class="step">
-            <div class="step-title">
-                <div class="step-number">1</div>
-                <h2>تسجيل عينة صوتية</h2>
-            </div>
-            <p>سجل عينة صوتية واضحة (30-60 ثانية) باللغة التي تريدها</p>
-            
-            <div class="recorder">
-                <button id="recordBtn" class="record-btn">
-                    <span>🎤 بدء التسجيل</span>
-                </button>
-                
-                <div class="audio-visualizer">
-                    <div class="visualizer-bars" id="visualizer"></div>
-                </div>
-                
-                <div id="recordedAudio" class="audio-player" style="display: none;">
-                    <p>التسجيل الناتج:</p>
-                    <audio controls style="width: 100%; margin-top: 10px;"></audio>
-                    <p class="recording-time" style="margin-top: 10px; color: #fdbb2d;"></p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-title">
-                <div class="step-number">2</div>
-                <h2>حفظ ومعالجة الصوت</h2>
-            </div>
-            <p>سيتم حفظ صوتك ومعالجته محلياً للمحاكاة الذكية</p>
-            
-            <button id="processBtn" class="clone-btn">
-                <span>🔧 معالجة الصوت</span>
-            </button>
-            
-            <div id="processResult" style="display: none;">
-                <div class="success">تم حفظ ومعالجة صوتك بنجاح! جاهز للتوليد.</div>
-                <div class="info-box">
-                    <p><strong>✅ الصوت جاهز:</strong> تم تحليل خصائص صوتك بنجاح</p>
-                    <p><strong>🎯 الحالة:</strong> <span id="voiceStatus" style="color: #2ecc71;">مستعد للتوليد</span></p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="step">
-            <div class="step-title">
-                <div class="step-number">3</div>
-                <h2>توليد كلام جديد</h2>
-            </div>
-            <p>اكتب النص الذي تريد تحويله إلى كلام باستخدام خصائص صوتك</p>
-            
-            <textarea id="textInput" placeholder="اكتب النص هنا... مثال: مرحباً، هذا صوتي يعمل بشكل رائع!"></textarea>
-            
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button id="generateBtn" class="generate-btn">
-                    <span>🔊 توليد الصوت</span>
-                </button>
-                <select id="voiceStyle" style="padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid #fdbb2d;">
-                    <option value="normal">صوت عادي</option>
-                    <option value="happy">صوت سعيد</option>
-                    <option value="serious">صوت جاد</option>
-                    <option value="storytelling">صوت قصصي</option>
+        <div class="controls">
+            <div class="control-group">
+                <label for="voice-type">نوع الصوت:</label>
+                <select id="voice-type">
+                    <option value="male">صوت رجل</option>
+                    <option value="female">صوت امرأة</option>
                 </select>
             </div>
             
-            <div id="generatedAudio" class="audio-player" style="display: none;">
-                <p>الصوت المُنشأ:</p>
-                <audio controls style="width: 100%; margin-top: 10px;"></audio>
-                <button id="downloadBtn" class="generate-btn" style="background: #2ecc71; margin-top: 10px;">
-                    <span>💾 تحميل الصوت</span>
-                </button>
+            <div class="control-group">
+                <label for="rate">سرعة الكلام: <span id="rate-value" class="range-value">1</span></label>
+                <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1">
+            </div>
+            
+            <div class="control-group">
+                <label for="pitch">نبرة الصوت: <span id="pitch-value" class="range-value">1</span></label>
+                <input type="range" id="pitch" min="0.5" max="2" step="0.1" value="1">
             </div>
         </div>
-
-        <div class="info-box">
-            <h3>ℹ️ كيف يعمل الآن:</h3>
-            <p>1. تسجل صوتك → يحفظ محلياً في المتصفح</p>
-            <p>2. عند الكتابة → نستخدم Web Speech API مع تحسينات</p>
-            <p>3. النتيجة → صوت مشابه مع الحفاظ على إيقاع صوتك</p>
+        
+        <div class="buttons">
+            <button class="play-btn" id="play-btn">
+                <span>▶ تشغيل</span>
+            </button>
+            <button class="pause-btn" id="pause-btn">
+                <span>⏸ إيقاف مؤقت</span>
+            </button>
+            <button class="stop-btn" id="stop-btn">
+                <span>⏹ إيقاف</span>
+            </button>
         </div>
         
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p id="loadingText">جاري المعالجة...</p>
+        <div class="status" id="status">جاهز للاستخدام</div>
+    </div>
+    
+    <div class="feature-list">
+        <div class="feature">
+            <i>🔊</i>
+            <h3>أصوات طبيعية</h3>
+            <p>أصوات بشرية طبيعية وواضحة</p>
         </div>
-        
-        <div class="error" id="error"></div>
-        
-        <footer>
-            <p>يعمل بتقنية Web Speech API مع معالجة محلية ذكية</p>
-        </footer>
+        <div class="feature">
+            <i>⚙️</i>
+            <h3>تحكم كامل</h3>
+            <p>تحكم في السرعة والنبرة</p>
+        </div>
+        <div class="feature">
+            <i>♾️</i>
+            <h3>نصوص لا نهائية</h3>
+            <p>يدعم النصوص الطويلة بلا حدود</p>
+        </div>
+        <div class="feature">
+            <i>📱</i>
+            <h3>متجاوب</h3>
+            <p>يعمل على جميع الأجهزة</p>
+        </div>
     </div>
 
     <script>
         // عناصر DOM
-        const recordBtn = document.getElementById('recordBtn');
-        const processBtn = document.getElementById('processBtn');
-        const generateBtn = document.getElementById('generateBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const loadingElement = document.getElementById('loading');
-        const errorElement = document.getElementById('error');
-        const loadingText = document.getElementById('loadingText');
+        const textInput = document.querySelector('.text-input');
+        const voiceType = document.getElementById('voice-type');
+        const rateSlider = document.getElementById('rate');
+        const rateValue = document.getElementById('rate-value');
+        const pitchSlider = document.getElementById('pitch');
+        const pitchValue = document.getElementById('pitch-value');
+        const playBtn = document.getElementById('play-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const status = document.getElementById('status');
         
-        // متغيرات التسجيل
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-        let audioBlob = null;
-        let recordingStartTime = null;
-        let recordingInterval = null;
-        let voiceProcessed = false;
+        // تهيئة Web Speech API
+        const synth = window.speechSynthesis;
+        let utterance = null;
         
-        // إنشاء أشرطة التصور
-        const visualizer = document.getElementById('visualizer');
-        for (let i = 0; i < 50; i++) {
-            const bar = document.createElement('div');
-            bar.classList.add('bar');
-            bar.style.height = '5px';
-            visualizer.appendChild(bar);
-        }
-        const bars = document.querySelectorAll('.bar');
-        
-        // بدء/إيقاف التسجيل
-        recordBtn.addEventListener('click', async () => {
-            if (!isRecording) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true,
-                            autoGainControl: true
-                        } 
-                    });
-                    
-                    // إعداد تحليل الصوت للتخيل
-                    const audioContext = new AudioContext();
-                    const analyser = audioContext.createAnalyser();
-                    const source = audioContext.createMediaStreamSource(stream);
-                    source.connect(analyser);
-                    analyser.fftSize = 256;
-                    
-                    mediaRecorder = new MediaRecorder(stream, {
-                        mimeType: 'audio/webm;codecs=opus'
-                    });
-                    
-                    audioChunks = [];
-                    recordingStartTime = Date.now();
-                    
-                    mediaRecorder.start();
-                    isRecording = true;
-                    recordBtn.classList.add('recording');
-                    recordBtn.innerHTML = '<span>⏹️ إيقاف التسجيل</span>';
-                    
-                    // بدء عداد الوقت
-                    recordingInterval = setInterval(updateRecordingTime, 1000);
-                    
-                    // بدء تحريك التصور
-                    animateBars(analyser);
-                    
-                    mediaRecorder.ondataavailable = (event) => {
-                        if (event.data.size > 0) {
-                            audioChunks.push(event.data);
-                        }
-                    };
-                    
-                    mediaRecorder.onstop = () => {
-                        audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        const audioElement = document.querySelector('#recordedAudio audio');
-                        audioElement.src = audioUrl;
-                        document.getElementById('recordedAudio').style.display = 'block';
-                        
-                        clearInterval(recordingInterval);
-                        stream.getTracks().forEach(track => track.stop());
-                        
-                        // حفظ الصوت في localStorage
-                        const reader = new FileReader();
-                        reader.onload = function() {
-                            const audioData = reader.result;
-                            localStorage.setItem('userVoiceRecording', audioData);
-                            showSuccess('✅ تم حفظ التسجيل بنجاح!');
-                        };
-                        reader.readAsDataURL(audioBlob);
-                    };
-                    
-                } catch (error) {
-                    console.error('خطأ في الوصول إلى الميكروفون:', error);
-                    showError('تعذر الوصول إلى الميكروفون. يرجى التحقق من الأذونات.');
-                }
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                recordBtn.classList.remove('recording');
-                recordBtn.innerHTML = '<span>🎤 بدء التسجيل</span>';
-            }
+        // تحديث قيم المنزلقات
+        rateSlider.addEventListener('input', () => {
+            rateValue.textContent = rateSlider.value;
         });
         
-        // تحديث وقت التسجيل
-        function updateRecordingTime() {
-            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            document.querySelector('.recording-time').textContent = 
-                `مدة التسجيل: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
+        pitchSlider.addEventListener('input', () => {
+            pitchValue.textContent = pitchSlider.value;
+        });
         
-        // تحريك أشرطة التصور
-        function animateBars(analyser) {
-            if (!isRecording) return;
+        // تشغيل النص
+        playBtn.addEventListener('click', () => {
+            if (textInput.value.trim() === '') {
+                status.textContent = 'يرجى إدخال نص أولاً';
+                return;
+            }
             
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(dataArray);
+            // إيقاف أي كلام جاري
+            synth.cancel();
             
-            for (let i = 0; i < bars.length; i++) {
-                const barIndex = Math.floor((i / bars.length) * dataArray.length);
-                const barHeight = Math.max(5, (dataArray[barIndex] / 255) * 100);
-                bars[i].style.height = `${barHeight}px`;
+            // إنشاء كلام جديد
+            utterance = new SpeechSynthesisUtterance(textInput.value);
+            
+            // تعيين الإعدادات
+            utterance.rate = parseFloat(rateSlider.value);
+            utterance.pitch = parseFloat(pitchSlider.value);
+            
+            // اختيار نوع الصوت
+            const voices = synth.getVoices();
+            if (voices.length > 0) {
+                // البحث عن صوت مناسب حسب الاختيار
+                const selectedVoice = voiceType.value === 'male' ? 
+                    voices.find(voice => voice.name.includes('Male') || !voice.name.includes('Female')) :
+                    voices.find(voice => voice.name.includes('Female'));
                 
-                if (barHeight > 70) {
-                    bars[i].style.background = '#e74c3c';
-                } else if (barHeight > 40) {
-                    bars[i].style.background = '#fdbb2d';
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+            }
+            
+            // أحداث الكلام
+            utterance.onstart = () => {
+                status.textContent = 'جاري تشغيل الكلام...';
+                playBtn.disabled = true;
+            };
+            
+            utterance.onend = () => {
+                status.textContent = 'تم إنهاء التشغيل';
+                playBtn.disabled = false;
+            };
+            
+            utterance.onerror = (event) => {
+                status.textContent = 'حدث خطأ: ' + event.error;
+                playBtn.disabled = false;
+            };
+            
+            // تشغيل الكلام
+            synth.speak(utterance);
+        });
+        
+        // إيقاف مؤقت
+        pauseBtn.addEventListener('click', () => {
+            if (synth.speaking) {
+                if (synth.paused) {
+                    synth.resume();
+                    status.textContent = 'جاري استئناف التشغيل...';
+                    pauseBtn.innerHTML = '<span>⏸ إيقاف مؤقت</span>';
                 } else {
-                    bars[i].style.background = '#2ecc71';
+                    synth.pause();
+                    status.textContent = 'متوقف مؤقتاً';
+                    pauseBtn.innerHTML = '<span>▶ استئناف</span>';
                 }
-            }
-            
-            requestAnimationFrame(() => animateBars(analyser));
-        }
-        
-        // معالجة الصوت
-        processBtn.addEventListener('click', async () => {
-            if (!audioBlob) {
-                showError('يرجى تسجيل عينة صوتية أولاً');
-                return;
-            }
-            
-            showLoading('جاري تحليل خصائص صوتك...');
-            
-            try {
-                // محاكاة عملية التحليل
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                voiceProcessed = true;
-                document.getElementById('processResult').style.display = 'block';
-                
-                hideLoading();
-                showSuccess('🎉 تم تحليل صوتك بنجاح! يمكنك الآن توليد النص.');
-                
-            } catch (error) {
-                hideLoading();
-                showError('خطأ في معالجة الصوت: ' + error.message);
             }
         });
         
-        // توليد الصوت من النص باستخدام Web Speech API
-        generateBtn.addEventListener('click', async () => {
-            const text = document.getElementById('textInput').value.trim();
-            const voiceStyle = document.getElementById('voiceStyle').value;
-            
-            if (!text) {
-                showError('يرجى إدخال نص أولاً');
-                return;
-            }
-            
-            if (!voiceProcessed) {
-                showError('يرجى معالجة الصوت أولاً');
-                return;
-            }
-            
-            showLoading('جاري توليد الصوت...');
-            
-            try {
-                // استخدام Web Speech API مع تحسينات
-                const audioUrl = await generateSpeech(text, voiceStyle);
-                
-                const audioElement = document.querySelector('#generatedAudio audio');
-                audioElement.src = audioUrl;
-                document.getElementById('generatedAudio').style.display = 'block';
-                
-                // إعداد زر التحميل
-                downloadBtn.onclick = () => {
-                    const a = document.createElement('a');
-                    a.href = audioUrl;
-                    a.download = `صوتي_المستنسخ_${Date.now()}.wav`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                };
-                
-                hideLoading();
-                showSuccess('✅ تم توليد الصوت بنجاح!');
-                
-            } catch (error) {
-                hideLoading();
-                showError('خطأ في توليد الصوت: ' + error.message);
-                
-                // حل بديل إذا فشل Web Speech API
-                setTimeout(() => {
-                    showSuccess('⚠️ استخدام وضع المحاكاة - الصوت يعمل ولكن بجودة أساسية');
-                    document.getElementById('generatedAudio').style.display = 'block';
-                }, 1000);
-            }
+        // إيقاف
+        stopBtn.addEventListener('click', () => {
+            synth.cancel();
+            status.textContent = 'تم الإيقاف';
+            playBtn.disabled = false;
+            pauseBtn.innerHTML = '<span>⏸ إيقاف مؤقت</span>';
         });
         
-        // دالة توليد الكلام باستخدام Web Speech API
-        function generateSpeech(text, style) {
-            return new Promise((resolve, reject) => {
-                if (!('speechSynthesis' in window)) {
-                    reject('Web Speech API غير مدعوم في هذا المتصفح');
-                    return;
-                }
-                
-                const utterance = new SpeechSynthesisUtterance(text);
-                
-                // إعدادات بناء على النمط المختار
-                switch(style) {
-                    case 'happy':
-                        utterance.rate = 1.2;
-                        utterance.pitch = 1.1;
-                        break;
-                    case 'serious':
-                        utterance.rate = 0.9;
-                        utterance.pitch = 0.9;
-                        break;
-                    case 'storytelling':
-                        utterance.rate = 1.0;
-                        utterance.pitch = 1.05;
-                        break;
-                    default:
-                        utterance.rate = 1.0;
-                        utterance.pitch = 1.0;
-                }
-                
-                // استخدام اللغة العربية
-                utterance.lang = 'ar-SA';
-                utterance.volume = 1;
-                
-                // محاولة العثور على صوت عربي
-                const voices = speechSynthesis.getVoices();
-                const arabicVoice = voices.find(voice => 
-                    voice.lang.includes('ar') || voice.lang.includes('arabic')
-                );
-                
-                if (arabicVoice) {
-                    utterance.voice = arabicVoice;
-                }
-                
-                utterance.onend = () => {
-                    // في التطبيق الحقيقي، هنا ستدمج مع صوت المستخدم
-                    // لكن للتبسيط نستخدم الصوت الناتج مباشرة
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    resolve(audioUrl);
-                };
-                
-                utterance.onerror = (event) => {
-                    reject('خطأ في توليد الصوت: ' + event.error);
-                };
-                
-                speechSynthesis.speak(utterance);
-            });
-        }
-        
-        // دوال المساعدة
-        function showLoading(text = 'جاري المعالجة...') {
-            loadingText.textContent = text;
-            loadingElement.style.display = 'block';
-            errorElement.style.display = 'none';
-        }
-        
-        function hideLoading() {
-            loadingElement.style.display = 'none';
-        }
-        
-        function showError(message) {
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
+        // تحميل الأصوات المتاحة عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            // بعض المتصفحات تحتاج إلى وقت لتحميل الأصوات
             setTimeout(() => {
-                errorElement.style.display = 'none';
-            }, 5000);
-        }
-        
-        function showSuccess(message) {
-            const successElement = document.createElement('div');
-            successElement.className = 'success';
-            successElement.textContent = message;
-            
-            const container = document.querySelector('.container');
-            container.insertBefore(successElement, document.querySelector('footer'));
-            
-            setTimeout(() => {
-                successElement.remove();
-            }, 5000);
-        }
-        
-        // تحميل الأصوات المتاحة
-        speechSynthesis.getVoices();
+                const voices = synth.getVoices();
+                if (voices.length === 0) {
+                    status.textContent = 'لم يتم العثور على أصوات متاحة. قد يحتاج المتصفح إلى تحديث.';
+                }
+            }, 100);
+        });
     </script>
 </body>
 </html>
