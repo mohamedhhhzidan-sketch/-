@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
     <style>
         :root {
             --primary: #0084ff;
@@ -681,6 +682,83 @@
             color: var(--success);
         }
 
+        /* نافذة استقبال المكالمة */
+        .incoming-call-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+        }
+        
+        .caller-info {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .caller-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .caller-name {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .call-type {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .call-actions {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .call-action-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .accept-call {
+            background: var(--success);
+            color: white;
+        }
+        
+        .reject-call {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .call-action-btn:hover {
+            transform: scale(1.1);
+        }
+
         @media (max-width: 768px) {
             .chat-container {
                 flex-direction: column;
@@ -709,6 +787,12 @@
                 width: 55px;
                 height: 55px;
                 font-size: 18px;
+            }
+            
+            .call-action-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 24px;
             }
         }
     </style>
@@ -869,6 +953,23 @@
         </div>
     </div>
 
+    <!-- نافذة استقبال المكالمة -->
+    <div id="incomingCallScreen" class="incoming-call-container hidden">
+        <div class="caller-info">
+            <div class="caller-avatar" id="callerAvatar">M</div>
+            <div class="caller-name" id="callerName">Mohamed Zidan</div>
+            <div class="call-type" id="callType">مكالمة فيديو واردة...</div>
+        </div>
+        <div class="call-actions">
+            <div class="call-action-btn accept-call" id="acceptCall" title="قبول المكالمة">
+                <i class="fas fa-phone"></i>
+            </div>
+            <div class="call-action-btn reject-call" id="rejectCall" title="رفض المكالمة">
+                <i class="fas fa-phone-slash"></i>
+            </div>
+        </div>
+    </div>
+
     <script>
         // تكوين Firebase
         const firebaseConfig = {
@@ -885,12 +986,14 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         // متغيرات التطبيق
         let currentUser = null;
         let currentChat = null;
         let allUsers = [];
         let chatListener = null;
+        let callListener = null;
         let localStream = null;
         let remoteStream = null;
         let peerConnection = null;
@@ -900,12 +1003,14 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
+        let currentCallData = null;
 
         // عناصر DOM
         const loginScreen = document.getElementById('loginScreen');
         const registerScreen = document.getElementById('registerScreen');
         const chatScreen = document.getElementById('chatScreen');
         const callScreen = document.getElementById('callScreen');
+        const incomingCallScreen = document.getElementById('incomingCallScreen');
         
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
@@ -939,6 +1044,12 @@
         const muteAudio = document.getElementById('muteAudio');
         const toggleVideo = document.getElementById('toggleVideo');
         const endCall = document.getElementById('endCall');
+        
+        const callerAvatar = document.getElementById('callerAvatar');
+        const callerName = document.getElementById('callerName');
+        const callType = document.getElementById('callType');
+        const acceptCall = document.getElementById('acceptCall');
+        const rejectCall = document.getElementById('rejectCall');
 
         // استمع لتغير حالة المصادقة
         auth.onAuthStateChanged(user => {
@@ -946,12 +1057,68 @@
                 currentUser = user;
                 console.log('المستخدم مسجل الدخول:', user.email);
                 loadUserData();
+                setupCallListener();
                 showScreen(chatScreen);
             } else {
                 console.log('لا يوجد مستخدم مسجل الدخول');
                 showScreen(loginScreen);
             }
         });
+
+        // إعداد مستمع المكالمات الواردة
+        function setupCallListener() {
+            callListener = db.collection('calls')
+                .where('receiverId', '==', currentUser.uid)
+                .where('status', '==', 'ringing')
+                .onSnapshot(snapshot => {
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === 'added') {
+                            const callData = change.doc.data();
+                            currentCallData = { id: change.doc.id, ...callData };
+                            showIncomingCall(callData);
+                        }
+                    });
+                });
+        }
+
+        // عرض نافذة المكالمة الواردة
+        function showIncomingCall(callData) {
+            const caller = allUsers.find(user => user.id === callData.callerId);
+            if (caller) {
+                callerAvatar.textContent = caller.firstName.charAt(0);
+                callerName.textContent = `${caller.firstName} ${caller.lastName}`;
+                callType.textContent = callData.isVideo ? 'مكالمة فيديو واردة...' : 'مكالمة صوتية واردة...';
+                
+                // تشغيل صوت الرنين
+                playRingtone();
+                
+                showScreen(incomingCallScreen);
+            }
+        }
+
+        // تشغيل صوت الرنين
+        function playRingtone() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 800;
+            gainNode.gain.value = 0.1;
+            
+            oscillator.start();
+            
+            // إيقاف الرنين بعد 2 ثانية وتكراره
+            setTimeout(() => {
+                oscillator.stop();
+                if (incomingCallScreen.style.display !== 'none') {
+                    setTimeout(playRingtone, 500);
+                }
+            }, 2000);
+        }
 
         // تسجيل الدخول
         loginForm.addEventListener('submit', async (e) => {
@@ -1026,7 +1193,7 @@
         // تسجيل الخروج
         logoutBtn.addEventListener('click', () => {
             if (isInCall) {
-                endCall.click();
+                endCurrentCall();
             }
             auth.signOut();
         });
@@ -1161,10 +1328,36 @@
                     });
                     
                     chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    // تحديث حالة القراءة للرسائل
+                    updateMessagesReadStatus(chatId);
                 }, error => {
                     console.error('Error loading messages:', error);
                     chatMessages.innerHTML = '<div class="error">خطأ في تحميل الرسائل</div>';
                 });
+        }
+
+        // تحديث حالة قراءة الرسائل
+        async function updateMessagesReadStatus(chatId) {
+            try {
+                const messagesSnapshot = await db.collection('chats')
+                    .doc(chatId)
+                    .collection('messages')
+                    .where('senderId', '==', currentChat.id)
+                    .where('read', '==', false)
+                    .get();
+                
+                const batch = db.batch();
+                
+                messagesSnapshot.forEach(doc => {
+                    const messageRef = db.collection('chats').doc(chatId).collection('messages').doc(doc.id);
+                    batch.update(messageRef, { read: true });
+                });
+                
+                await batch.commit();
+            } catch (error) {
+                console.error('Error updating read status:', error);
+            }
         }
 
         // عرض رسالة في الواجهة
@@ -1202,7 +1395,7 @@
                 `;
             } else {
                 const statusIcon = message.read ? 'fas fa-check-double' : 'fas fa-check';
-                const statusColor = message.read ? 'style="color: #0084ff"' : '';
+                const statusColor = message.read ? 'style="color: #0084ff"' : 'style="color: rgba(255,255,255,0.5)"';
                 
                 messageElement.innerHTML = `
                     ${messageContent}
@@ -1219,7 +1412,10 @@
         // تشغيل الرسالة الصوتية
         window.playVoiceMessage = function(audioUrl) {
             const audio = new Audio(audioUrl);
-            audio.play();
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+                alert('خطأ في تشغيل الرسالة الصوتية');
+            });
         };
 
         // إرسال رسالة
@@ -1296,10 +1492,14 @@
                     
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        // هنا يمكنك رفع الملف إلى Firebase Storage وإرسال الرابط
-                        console.log('تم تسجيل رسالة صوتية:', audioBlob);
                         
-                        // محاكاة إرسال الرسالة الصوتية
+                        // رفع الملف إلى Firebase Storage
+                        const audioName = `voice_${Date.now()}.wav`;
+                        const audioRef = storage.ref().child(`voice_messages/${audioName}`);
+                        const snapshot = await audioRef.put(audioBlob);
+                        const audioUrl = await snapshot.ref.getDownloadURL();
+                        
+                        // إرسال الرسالة الصوتية
                         if (currentChat) {
                             const chatId = getChatId(currentUser.uid, currentChat.id);
                             const userDoc = await db.collection('users').doc(currentUser.uid).get();
@@ -1307,7 +1507,7 @@
                             
                             const messageData = {
                                 type: 'voice',
-                                audioUrl: URL.createObjectURL(audioBlob),
+                                audioUrl: audioUrl,
                                 duration: '0:05',
                                 senderId: currentUser.uid,
                                 senderName: `${userData.firstName} ${userData.lastName}`,
@@ -1326,6 +1526,13 @@
                     isRecording = true;
                     voiceRecordBtn.classList.add('recording');
                     voiceRecordBtn.innerHTML = '<i class="fas fa-stop"></i>';
+                    
+                    // إيقاف التسجيل تلقائياً بعد 30 ثانية
+                    setTimeout(() => {
+                        if (isRecording) {
+                            toggleVoiceRecording();
+                        }
+                    }, 30000);
                     
                 } catch (error) {
                     console.error('Error accessing microphone:', error);
@@ -1346,7 +1553,7 @@
         // المكالمات الصوتية والمرئية
         videoCallBtn.addEventListener('click', () => {
             if (currentChat) {
-                startCall(true);
+                initiateCall(true);
             } else {
                 alert('يرجى اختيار مستخدم أولاً');
             }
@@ -1354,12 +1561,60 @@
 
         audioCallBtn.addEventListener('click', () => {
             if (currentChat) {
-                startCall(false);
+                initiateCall(false);
             } else {
                 alert('يرجى اختيار مستخدم أولاً');
             }
         });
 
+        // بدء مكالمة جديدة
+        async function initiateCall(isVideoCall) {
+            try {
+                const callData = {
+                    callerId: currentUser.uid,
+                    callerName: `${currentUser.firstName} ${currentUser.lastName}`,
+                    receiverId: currentChat.id,
+                    isVideo: isVideoCall,
+                    status: 'ringing',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await db.collection('calls').add(callData);
+                
+                // الانتظار لقبول المكالمة
+                showMessage(loginMessage, 'جاري الاتصال...', 'loading');
+                
+            } catch (error) {
+                console.error('Error initiating call:', error);
+                alert('خطأ في بدء المكالمة: ' + error.message);
+            }
+        }
+
+        // قبول المكالمة
+        acceptCall.addEventListener('click', async () => {
+            if (currentCallData) {
+                await db.collection('calls').doc(currentCallData.id).update({
+                    status: 'accepted'
+                });
+                
+                startCall(currentCallData.isVideo);
+                showScreen(callScreen);
+            }
+        });
+
+        // رفض المكالمة
+        rejectCall.addEventListener('click', async () => {
+            if (currentCallData) {
+                await db.collection('calls').doc(currentCallData.id).update({
+                    status: 'rejected'
+                });
+                
+                showScreen(chatScreen);
+                currentCallData = null;
+            }
+        });
+
+        // بدء المكالمة
         async function startCall(isVideoCall) {
             try {
                 const constraints = {
@@ -1370,29 +1625,19 @@
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = localStream;
                 
-                callWithName.textContent = `مكالمة ${isVideoCall ? 'فيديو' : 'صوتية'} مع ${currentChat.firstName}`;
-                showScreen(callScreen);
+                const caller = allUsers.find(user => user.id === currentCallData.callerId);
+                callWithName.textContent = `مكالمة ${isVideoCall ? 'فيديو' : 'صوتية'} مع ${caller.firstName}`;
+                
                 isInCall = true;
                 
                 // بدء عدّاد المكالمة
                 callStartTime = new Date();
                 callInterval = setInterval(updateCallDuration, 1000);
                 
-                // محاكاة اتصال WebRTC (في تطبيق حقيقي تحتاج لخدمة signaling)
-                setTimeout(() => {
-                    // محاكاة قبول المكالمة من الطرف الآخر
-                    simulateIncomingCall(isVideoCall);
-                }, 2000);
-                
             } catch (error) {
                 console.error('Error starting call:', error);
                 alert('خطأ في بدء المكالمة: ' + error.message);
             }
-        }
-
-        function simulateIncomingCall(isVideoCall) {
-            // في تطبيق حقيقي، هذا سيكون اتصال WebRTC حقيقي
-            remoteVideo.srcObject = localStream; // محاكاة فقط
         }
 
         function updateCallDuration() {
@@ -1439,6 +1684,14 @@
             }
             isInCall = false;
             clearInterval(callInterval);
+            
+            if (currentCallData) {
+                db.collection('calls').doc(currentCallData.id).update({
+                    status: 'ended'
+                });
+                currentCallData = null;
+            }
+            
             showScreen(chatScreen);
         }
 
@@ -1514,6 +1767,7 @@
             registerScreen.classList.add('hidden');
             chatScreen.classList.add('hidden');
             callScreen.classList.add('hidden');
+            incomingCallScreen.classList.add('hidden');
             
             screen.classList.remove('hidden');
         }
