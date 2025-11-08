@@ -1,416 +1,903 @@
-مشروع: Chat++ — موقع رسائل نصية + صوت + فيديو (React + Firebase)
-
-> هذا المشروع جاهز كقالب أنيق وحديث لرفع على GitHub. يتضمن:
-
-تسجيل / تسجيل دخول عبر Email/Password وGoogle OAuth
-
-ملف شخصي مع رفع صورة في Firebase Storage
-
-دردشة نصية (غرف عامة + محادثات خاصة)
-
-مكالمات صوتية وفيديو عبر WebRTC (signaling عبر Firestore + RTDB) مع دعم TURN
-
-تصميم عصري باستخدام Tailwind + واجهة مرتبة ومكونات React
-
-
-
-
-
----
-
-بنية المشروع (الملفات الأساسية)
-
-chat-plus/
-├─ package.json
-├─ tailwind.config.cjs
-├─ postcss.config.cjs
-├─ public/
-│  └─ index.html
-└─ src/
-   ├─ index.jsx
-   ├─ App.jsx
-   ├─ firebase.js
-   ├─ components/
-   │  ├─ AuthForm.jsx
-   │  ├─ Sidebar.jsx
-   │  ├─ ChatArea.jsx
-   │  ├─ CallPanel.jsx
-   │  └─ AvatarUploader.jsx
-   ├─ styles/index.css
-   └─ utils/rtc.js
-
-
----
-
-أهم الملفات (انسخهم كما هم)
-
-package.json
-
-{
-  "name": "chat-plus",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "start": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "firebase": "^9.22.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "simple-peer": "^9.11.1"
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24",
-    "tailwindcss": "^3.4.6",
-    "vite": "^5.0.0"
-  }
-}
-
-tailwind.config.cjs
-
-module.exports = {
-  content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
-  theme: { extend: {} },
-  plugins: [],
-}
-
-postcss.config.cjs
-
-module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } }
-
-public/index.html
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Chat++</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/index.jsx"></script>
-  </body>
-</html>
-
-src/index.jsx
-
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App'
-import './styles/index.css'
-
-createRoot(document.getElementById('root')).render(<App />)
-
-src/firebase.js
-
-import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
-import { getStorage } from 'firebase/storage'
-import { getDatabase } from 'firebase/database'
-
-// ضع هنا إعدادات Firebase الخاصة بك
-const firebaseConfig = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID",
-  databaseURL: "REPLACE_WITH_YOUR_DATABASE_URL"
-}
-
-const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
-export const provider = new GoogleAuthProvider()
-export const db = getFirestore(app)
-export const storage = getStorage(app)
-export const rtdb = getDatabase(app)
-
-export default app
-
-src/utils/rtc.js
-
-// منطق WebRTC مختصر باستخدام simple-peer
-import SimplePeer from 'simple-peer'
-
-export function createPeer({initiator, stream, onSignal, onStream}){
-  const peer = new SimplePeer({ initiator, trickle: false, stream })
-  peer.on('signal', data => onSignal(JSON.stringify(data)))
-  peer.on('stream', remoteStream => onStream(remoteStream))
-  return peer
-}
-
-src/components/AuthForm.jsx
-
-import React, {useState} from 'react'
-import { auth, provider, db } from '../firebase'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth'
-import { doc, setDoc } from 'firebase/firestore'
-
-export default function AuthForm(){
-  const [mode, setMode] = useState('signin')
-  const [form, setForm] = useState({name:'',username:'',email:'',password:''})
-
-  async function signup(){
-    const cred = await createUserWithEmailAndPassword(auth, form.email, form.password)
-    await updateProfile(cred.user, { displayName: form.name })
-    await setDoc(doc(db, 'users', cred.user.uid), { name: form.name, username: form.username, uid: cred.user.uid, online:true })
-  }
-  async function signin(){ await signInWithEmailAndPassword(auth, form.email, form.password) }
-  async function google(){ const res = await signInWithPopup(auth, provider); const u = res.user; await setDoc(doc(db,'users',u.uid),{ name:u.displayName, username:u.email.split('@')[0], uid:u.uid, avatarUrl: u.photoURL||null },{merge:true}) }
-
-  return (
-    <div className="p-4">
-      <h3 className="text-lg font-semibold">{mode === 'signin' ? 'دخول' : 'تسجيل'}</h3>
-      {mode==='signup' && <input placeholder="الاسم" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} className="w-full p-2 mt-2 rounded border" />}
-      {mode==='signup' && <input placeholder="اسم المستخدم" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} className="w-full p-2 mt-2 rounded border" />}
-      <input placeholder="البريد" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} className="w-full p-2 mt-2 rounded border" />
-      <input placeholder="كلمة السر" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className="w-full p-2 mt-2 rounded border" />
-      <div className="flex gap-2 mt-3">
-        <button onClick={mode==='signin'?signin:signup} className="flex-1 p-2 rounded bg-blue-600 text-white">{mode==='signin'?'دخول':'سجل'}</button>
-        <button onClick={google} className="flex-1 p-2 rounded border">جوجل</button>
-      </div>
-      <div className="mt-3 text-sm text-gray-500">{mode==='signin'? 'لا تملك حساب؟' : 'لديك حساب؟' } <button onClick={()=>setMode(mode==='signin'?'signup':'signin')} className="text-blue-600">{mode==='signin'?'سجل':'دخول'}</button></div>
-    </div>
-  )
-}
-
-src/components/Sidebar.jsx
-
-import React from 'react'
-
-export default function Sidebar({user, users, onStartCall}){
-  return (
-    <aside className="w-80 bg-white rounded p-4 shadow">
-      <div className="flex items-center gap-3">
-        <img src={user?.photoURL||'/avatar-placeholder.png'} className="w-14 h-14 rounded-full object-cover"/>
-        <div>
-          <div className="font-semibold">{user?.displayName||user?.email}</div>
-          <div className="text-sm text-gray-500">@{user?.username||''}</div>
-        </div>
-      </div>
-      <div className="mt-4">
-        <h4 className="font-semibold">المستخدمون</h4>
-        <div className="mt-2 space-y-2 max-h-64 overflow-auto">
-          {users.map(u=> (
-            <div key={u.uid} className="flex items-center justify-between p-2 border rounded">
-              <div className="flex items-center gap-2">
-                <img src={u.avatarUrl||'/avatar-placeholder.png'} className="w-10 h-10 rounded-full object-cover"/>
-                <div><div className="font-medium">{u.name}</div><div className="text-xs text-gray-500">@{u.username}</div></div>
-              </div>
-              <div>
-                <button onClick={()=>onStartCall(u.uid)} className="p-1 rounded bg-green-600 text-white">اتصال</button>
-              </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شات فخم - Zidan Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+    <style>
+        :root {
+            --primary: #6c63ff;
+            --secondary: #4a44b5;
+            --dark: #1a1a2e;
+            --darker: #16213e;
+            --light: #f5f5f7;
+            --success: #4caf50;
+            --danger: #f44336;
+            --warning: #ff9800;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--dark), var(--darker));
+            color: var(--light);
+            min-height: 100vh;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* تصميم النماذج */
+        .form-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            margin: 50px auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            color: var(--light);
+            position: relative;
+        }
+        
+        .form-title:after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: var(--primary);
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: var(--light);
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.3);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--primary);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(108, 99, 255, 0.1);
+        }
+        
+        .link-text {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .link-text a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .link-text a:hover {
+            text-decoration: underline;
+        }
+        
+        /* تصميم واجهة الشات */
+        .chat-container {
+            display: flex;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: rgba(255, 255, 255, 0.08);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-profile {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 30px;
+            font-weight: bold;
+        }
+        
+        .search-box {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: var(--light);
+        }
+        
+        .contacts-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+        
+        .contact-item {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .contact-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        
+        .contact-info h4 {
+            margin-bottom: 5px;
+        }
+        
+        .contact-info p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            margin-bottom: 15px;
+            border-radius: 18px;
+            position: relative;
+        }
+        
+        .message.sent {
+            align-self: flex-end;
+            background: var(--primary);
+            border-bottom-right-radius: 5px;
+        }
+        
+        .message.received {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message-sender {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            text-align: left;
+            margin-top: 5px;
+            opacity: 0.7;
+        }
+        
+        .chat-input-container {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: var(--light);
+            margin-left: 10px;
+        }
+        
+        .call-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .call-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .call-btn.video {
+            background: var(--primary);
+        }
+        
+        .call-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .logout-btn {
+            background: var(--danger);
+            width: auto;
+            padding: 8px 15px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        /* تصميم المكالمات */
+        .call-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--darker);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .call-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .call-controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+        
+        .call-control {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+        
+        .call-control.end-call {
+            background: var(--danger);
+        }
+        
+        .call-control:hover {
+            transform: scale(1.1);
+        }
+        
+        .call-info {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+        
+        /* تصميم ال responsive */
+        @media (max-width: 768px) {
+            .chat-container {
+                flex-direction: column;
+                height: 95vh;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 40%;
+            }
+            
+            .chat-area {
+                height: 60%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginScreen" class="form-container">
+        <h2 class="form-title">تسجيل الدخول</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label">البريد الإلكتروني</label>
+                <input type="email" class="form-input" id="loginEmail" required>
             </div>
-          ))}
+            <div class="form-group">
+                <label class="form-label">كلمة المرور</label>
+                <input type="password" class="form-input" id="loginPassword" required>
+            </div>
+            <button type="submit" class="btn">تسجيل الدخول</button>
+        </form>
+        <div class="link-text">
+            <span>ليس لديك حساب؟ <a href="#" id="showRegister">سجل الآن</a></span>
         </div>
-      </div>
-    </aside>
-  )
-}
-
-src/components/ChatArea.jsx
-
-import React, {useEffect, useState, useRef} from 'react'
-import { db } from '../firebase'
-import { collection, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore'
-
-export default function ChatArea(){
-  const [messages, setMessages] = useState([])
-  const [text, setText] = useState('')
-  const listRef = useRef()
-
-  useEffect(()=>{
-    const q = query(collection(db,'messages'), orderBy('ts','asc'))
-    const unsub = onSnapshot(q, snap=>{
-      const arr = snap.docs.map(d=>({id:d.id, ...d.data()}))
-      setMessages(arr)
-      setTimeout(()=>{ if(listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight },50)
-    })
-    return ()=>unsub()
-  },[])
-
-  async function send(){
-    if(!text.trim()) return
-    await addDoc(collection(db,'messages'),{ text, ts: new Date(), name: 'مستخدم', uid: 'anonymous'})
-    setText('')
-  }
-
-  return (
-    <div className="flex-1 flex flex-col">
-      <div ref={listRef} className="p-3 bg-gray-50 rounded flex-1 overflow-auto">
-        {messages.map(m=> (
-          <div key={m.id} className="mb-2 p-2 bg-white rounded shadow-sm">
-            <div className="font-semibold">{m.name}</div>
-            <div>{m.text}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex gap-2">
-        <input value={text} onChange={e=>setText(e.target.value)} className="flex-1 p-2 border rounded" placeholder="اكتب رسالة..." />
-        <button onClick={send} className="p-2 bg-blue-600 text-white rounded">إرسال</button>
-      </div>
     </div>
-  )
-}
 
-src/components/CallPanel.jsx
-
-import React, {useRef, useEffect} from 'react'
-import { createPeer } from '../utils/rtc'
-
-export default function CallPanel({onCreateOffer, incomingOffer, sendAnswer}){
-  const localV = useRef();
-  const remoteV = useRef();
-  let peer = null
-
-  async function startLocal(){
-    const s = await navigator.mediaDevices.getUserMedia({video:true,audio:true})
-    localV.current.srcObject = s
-    return s
-  }
-
-  async function call(uid){
-    const stream = await startLocal()
-    peer = createPeer({initiator:true, stream, onSignal: s=>onCreateOffer(s), onStream: st=>{ remoteV.current.srcObject = st }})
-  }
-
-  async function answer(offer){
-    const stream = await startLocal()
-    peer = createPeer({initiator:false, stream, onSignal: s=>sendAnswer(s), onStream: st=>{ remoteV.current.srcObject = st }})
-    peer.signal(JSON.parse(offer))
-  }
-
-  useEffect(()=>{
-    if(incomingOffer){ answer(incomingOffer) }
-  },[incomingOffer])
-
-  return (
-    <div className="w-96 p-3 bg-white rounded shadow">
-      <div className="video-box mb-2"><video ref={localV} autoPlay muted playsInline className="w-full h-48 object-cover rounded"/></div>
-      <div className="video-box mb-2"><video ref={remoteV} autoPlay playsInline className="w-full h-48 object-cover rounded"/></div>
-      <div className="flex gap-2">
-        <button className="flex-1 bg-green-600 text-white p-2 rounded">اتصال</button>
-        <button className="flex-1 bg-red-600 text-white p-2 rounded">انهاء</button>
-      </div>
+    <!-- شاشة التسجيل -->
+    <div id="registerScreen" class="form-container hidden">
+        <h2 class="form-title">إنشاء حساب جديد</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label class="form-label">الاسم</label>
+                <input type="text" class="form-input" id="registerFirstName" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم العائلة</label>
+                <input type="text" class="form-input" id="registerLastName" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم المستخدم</label>
+                <input type="text" class="form-input" id="registerUsername" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">البريد الإلكتروني</label>
+                <input type="email" class="form-input" id="registerEmail" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">كلمة المرور</label>
+                <input type="password" class="form-input" id="registerPassword" required>
+            </div>
+            <button type="submit" class="btn">إنشاء الحساب</button>
+        </form>
+        <div class="link-text">
+            <span>لديك حساب بالفعل؟ <a href="#" id="showLogin">سجل الدخول</a></span>
+        </div>
     </div>
-  )
-}
 
-src/styles/index.css
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial }
-.video-box{ background:#0f172a; display:flex; align-items:center; justify-content:center }
-
-src/App.jsx
-
-import React, {useEffect, useState} from 'react'
-import AuthForm from './components/AuthForm'
-import Sidebar from './components/Sidebar'
-import ChatArea from './components/ChatArea'
-import CallPanel from './components/CallPanel'
-import { auth, db } from './firebase'
-import { onAuthStateChanged } from 'firebase/auth'
-import { collection, onSnapshot } from 'firebase/firestore'
-
-export default function App(){
-  const [user, setUser] = useState(null)
-  const [users, setUsers] = useState([])
-
-  useEffect(()=>{
-    const unsub = onAuthStateChanged(auth, u=> setUser(u))
-    return ()=>unsub()
-  },[])
-
-  useEffect(()=>{
-    const unsub = onSnapshot(collection(db,'users'), snap=>{
-      const arr = snap.docs.map(d=>d.data())
-      setUsers(arr)
-    })
-    return ()=>unsub()
-  },[])
-
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="col-span-1">
-          {user ? <Sidebar user={user} users={users.filter(u=>u.uid!==user.uid)} onStartCall={(uid)=>console.log('call',uid)} /> : <AuthForm /> }
+    <!-- واجهة الشات الرئيسية -->
+    <div id="chatScreen" class="container hidden">
+        <div class="chat-container">
+            <!-- الشريط الجانبي -->
+            <div class="sidebar">
+                <div class="user-profile">
+                    <div class="user-avatar" id="userAvatar">Z</div>
+                    <h3 id="userFullName">زيدان محمد</h3>
+                    <p id="userUsername">@zidan</p>
+                    <button class="btn logout-btn" id="logoutBtn">تسجيل الخروج</button>
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput" placeholder="ابحث عن مستخدم...">
+                </div>
+                
+                <div class="contacts-list" id="contactsList">
+                    <!-- سيتم ملء جهات الاتصال هنا -->
+                </div>
+            </div>
+            
+            <!-- منطقة الدردشة -->
+            <div class="chat-area">
+                <div class="chat-header">
+                    <div class="contact-info">
+                        <h3 id="currentChatName">اختر محادثة للبدء</h3>
+                        <p id="currentChatStatus">متصل الآن</p>
+                    </div>
+                    <div class="call-buttons">
+                        <div class="call-btn video" id="videoCallBtn">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="call-btn" id="audioCallBtn">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <!-- سيتم عرض الرسائل هنا -->
+                    <div class="message received">
+                        <div class="message-sender">النظام</div>
+                        <div class="message-text">مرحبًا بك في شات زيدان! اختر مستخدمًا للبدء في المحادثة.</div>
+                        <div class="message-time">الآن</div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="messageInput" placeholder="اكتب رسالة هنا..." disabled>
+                    <button class="btn" id="sendMessageBtn" disabled>إرسال</button>
+                </div>
+            </div>
         </div>
-        <div className="lg:col-span-2 col-span-1">
-          <ChatArea />
-        </div>
-        <div className="col-span-1">
-          <CallPanel />
-        </div>
-      </div>
     </div>
-  )
-}
 
+    <!-- نافذة المكالمة -->
+    <div id="callScreen" class="call-container hidden">
+        <video class="call-video" id="localVideo" autoplay muted></video>
+        <video class="call-video" id="remoteVideo" autoplay></video>
+        
+        <div class="call-info">
+            <h3 id="callWithName">مكالمة مع زيدان</h3>
+            <p id="callDuration">00:00</p>
+        </div>
+        
+        <div class="call-controls">
+            <div class="call-control" id="muteAudio">
+                <i class="fas fa-microphone"></i>
+            </div>
+            <div class="call-control" id="toggleVideo">
+                <i class="fas fa-video"></i>
+            </div>
+            <div class="call-control end-call" id="endCall">
+                <i class="fas fa-phone"></i>
+            </div>
+        </div>
+    </div>
 
----
+    <script>
+        // تكوين Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCHzDtp4KH821kgpltOsgNiahHXts2mZRU",
+            authDomain: "zidan-a64fd.firebaseapp.com",
+            projectId: "zidan-a64fd",
+            storageBucket: "zidan-a64fd.firebasestorage.app",
+            messagingSenderId: "906402492307",
+            appId: "1:906402492307:web:544d5d55355b1835500266",
+            measurementId: "G-TR31C5GRWP"
+        };
 
-خطوات التشغيل المحلي
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
 
-1. أنشئ مشروع جديد: npm init -y ثم انسخ package.json أعلاه.
+        // متغيرات التطبيق
+        let currentUser = null;
+        let currentChat = null;
+        let callActive = false;
+        let callStartTime = null;
+        let callInterval = null;
 
+        // عناصر DOM
+        const loginScreen = document.getElementById('loginScreen');
+        const registerScreen = document.getElementById('registerScreen');
+        const chatScreen = document.getElementById('chatScreen');
+        const callScreen = document.getElementById('callScreen');
+        
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegister = document.getElementById('showRegister');
+        const showLogin = document.getElementById('showLogin');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        const userAvatar = document.getElementById('userAvatar');
+        const userFullName = document.getElementById('userFullName');
+        const userUsername = document.getElementById('userUsername');
+        
+        const searchInput = document.getElementById('searchInput');
+        const contactsList = document.getElementById('contactsList');
+        
+        const currentChatName = document.getElementById('currentChatName');
+        const currentChatStatus = document.getElementById('currentChatStatus');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        
+        const videoCallBtn = document.getElementById('videoCallBtn');
+        const audioCallBtn = document.getElementById('audioCallBtn');
+        
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const callWithName = document.getElementById('callWithName');
+        const callDuration = document.getElementById('callDuration');
+        const muteAudio = document.getElementById('muteAudio');
+        const toggleVideo = document.getElementById('toggleVideo');
+        const endCall = document.getElementById('endCall');
 
-2. ثبت الحزم: npm install ثم npm install -D tailwindcss postcss autoprefixer vite ثم npx tailwindcss init -p (أو طبق الملفات أعلاه).
+        // استمع لتغير حالة المصادقة
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                loadUserData();
+                showScreen(chatScreen);
+            } else {
+                showScreen(loginScreen);
+            }
+        });
 
+        // تسجيل الدخول
+        loginForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log('تم تسجيل الدخول بنجاح');
+                })
+                .catch(error => {
+                    alert('خطأ في تسجيل الدخول: ' + error.message);
+                });
+        });
 
-3. ضع إعدادات Firebase في src/firebase.js (API keys من لوحة Firebase).
+        // إنشاء حساب جديد
+        registerForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const firstName = document.getElementById('registerFirstName').value;
+            const lastName = document.getElementById('registerLastName').value;
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+                    
+                    // حفظ بيانات المستخدم الإضافية
+                    return db.collection('users').doc(user.uid).set({
+                        firstName: firstName,
+                        lastName: lastName,
+                        username: username,
+                        email: email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    console.log('تم إنشاء الحساب بنجاح');
+                })
+                .catch(error => {
+                    alert('خطأ في إنشاء الحساب: ' + error.message);
+                });
+        });
 
+        // تسجيل الخروج
+        logoutBtn.addEventListener('click', () => {
+            if (callActive) {
+                endCall.click();
+            }
+            auth.signOut();
+        });
 
-4. شغّل التطوير: npm run start ثم افتح http://localhost:5173.
+        // التبديل بين شاشتي التسجيل والدخول
+        showRegister.addEventListener('click', e => {
+            e.preventDefault();
+            showScreen(registerScreen);
+        });
 
+        showLogin.addEventListener('click', e => {
+            e.preventDefault();
+            showScreen(loginScreen);
+        });
 
+        // تحميل بيانات المستخدم
+        function loadUserData() {
+            db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        userAvatar.textContent = userData.firstName.charAt(0);
+                        userFullName.textContent = `${userData.firstName} ${userData.lastName}`;
+                        userUsername.textContent = `@${userData.username}`;
+                        
+                        // تحميل جهات الاتصال
+                        loadContacts();
+                    }
+                });
+        }
 
-ماذا فعلت لك هنا
+        // تحميل جهات الاتصال (المستخدمين الآخرين)
+        function loadContacts() {
+            db.collection('users').where('username', '!=', '').get()
+                .then(snapshot => {
+                    contactsList.innerHTML = '';
+                    
+                    snapshot.forEach(doc => {
+                        if (doc.id !== currentUser.uid) {
+                            const user = doc.data();
+                            const contactItem = document.createElement('div');
+                            contactItem.className = 'contact-item';
+                            contactItem.innerHTML = `
+                                <div class="contact-avatar">${user.firstName.charAt(0)}</div>
+                                <div class="contact-info">
+                                    <h4>${user.firstName} ${user.lastName}</h4>
+                                    <p>@${user.username}</p>
+                                </div>
+                            `;
+                            
+                            contactItem.addEventListener('click', () => {
+                                startChat(doc.id, user);
+                            });
+                            
+                            contactsList.appendChild(contactItem);
+                        }
+                    });
+                });
+        }
 
-جهزت scaffold كامل قابل للنسخ واللصق على GitHub
+        // بدء محادثة مع مستخدم
+        function startChat(userId, userData) {
+            currentChat = {
+                id: userId,
+                ...userData
+            };
+            
+            currentChatName.textContent = `${userData.firstName} ${userData.lastName}`;
+            currentChatStatus.textContent = 'متصل الآن';
+            
+            messageInput.disabled = false;
+            sendMessageBtn.disabled = false;
+            
+            loadChatMessages();
+        }
 
-استخدمت React + Tailwind لتصميم عصري
+        // تحميل رسائل المحادثة
+        function loadChatMessages() {
+            // هذه وظيفة أساسية - تحتاج لتطوير في المستقبل
+            chatMessages.innerHTML = `
+                <div class="message received">
+                    <div class="message-sender">${currentChat.firstName}</div>
+                    <div class="message-text">مرحبًا! كيف يمكنني مساعدتك؟</div>
+                    <div class="message-time">الآن</div>
+                </div>
+            `;
+        }
 
-فصلت المكونات ليكون التعديل سهلاً
+        // إرسال رسالة
+        sendMessageBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
 
-وفّرت منطق بسيط للدردشة والمكالمات (SimplePeer) - تحتاج TURN server للاتصالات الأكثر موثوقية عبر NATs.
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (messageText && currentChat) {
+                // إضافة الرسالة للواجهة
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message sent';
+                messageElement.innerHTML = `
+                    <div class="message-text">${messageText}</div>
+                    <div class="message-time">الآن</div>
+                `;
+                
+                chatMessages.appendChild(messageElement);
+                messageInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // هنا يمكنك إضافة كود لحفظ الرسالة في Firebase
+            }
+        }
 
+        // بدء مكالمة فيديو
+        videoCallBtn.addEventListener('click', () => {
+            if (currentChat) {
+                startCall(true);
+            }
+        });
 
-تحسينات مقترحة قبل نشر في الإنتاج
+        // بدء مكالمة صوتية
+        audioCallBtn.addEventListener('click', () => {
+            if (currentChat) {
+                startCall(false);
+            }
+        });
 
-إعداد قواعد Firestore/Storage للإذن الصحيح (security rules)
+        // بدء المكالمة
+        function startCall(isVideo) {
+            callActive = true;
+            callWithName.textContent = `مكالمة ${isVideo ? 'فيديو' : 'صوتية'} مع ${currentChat.firstName}`;
+            showScreen(callScreen);
+            
+            // بدء عدّاد المكالمة
+            callStartTime = new Date();
+            callInterval = setInterval(updateCallDuration, 1000);
+            
+            // محاكاة فتح الكاميرا/الميكروفون
+            navigator.mediaDevices.getUserMedia({ 
+                video: isVideo, 
+                audio: true 
+            })
+            .then(stream => {
+                localVideo.srcObject = stream;
+                // في تطبيق حقيقي، هنا ستقوم بإرسال الدفق للطرف الآخر
+            })
+            .catch(error => {
+                console.error('خطأ في الوصول للكاميرا/الميكروفون:', error);
+            });
+        }
 
-إعداد TURN server (coturn) أو استخدم خدمات TURN تجارية (مثلاً Twilio, Xirsys)
+        // تحديث مدة المكالمة
+        function updateCallDuration() {
+            const now = new Date();
+            const diff = Math.floor((now - callStartTime) / 1000);
+            const minutes = Math.floor(diff / 60);
+            const seconds = diff % 60;
+            callDuration.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
 
-إضافة تشفير من طرف إلى طرف إن رغبت
+        // إنهاء المكالمة
+        endCall.addEventListener('click', () => {
+            callActive = false;
+            clearInterval(callInterval);
+            
+            // إيقاف الدفق
+            if (localVideo.srcObject) {
+                localVideo.srcObject.getTracks().forEach(track => track.stop());
+            }
+            
+            showScreen(chatScreen);
+        });
 
-تحسين تجربة البحث والـ presence وقراءة الرسائل
+        // تبديل كتم الصوت
+        muteAudio.addEventListener('click', () => {
+            const icon = muteAudio.querySelector('i');
+            if (icon.classList.contains('fa-microphone')) {
+                icon.classList.replace('fa-microphone', 'fa-microphone-slash');
+            } else {
+                icon.classList.replace('fa-microphone-slash', 'fa-microphone');
+            }
+        });
 
-إضافة اختبارات وCI وملف README مفصل
+        // تبديل الفيديو
+        toggleVideo.addEventListener('click', () => {
+            const icon = toggleVideo.querySelector('i');
+            if (icon.classList.contains('fa-video')) {
+                icon.classList.replace('fa-video', 'fa-video-slash');
+            } else {
+                icon.classList.replace('fa-video-slash', 'fa-video');
+            }
+        });
 
+        // البحث عن المستخدمين
+        searchInput.addEventListener('input', e => {
+            const searchTerm = e.target.value.toLowerCase();
+            const contacts = document.querySelectorAll('.contact-item');
+            
+            contacts.forEach(contact => {
+                const name = contact.querySelector('h4').textContent.toLowerCase();
+                const username = contact.querySelector('p').textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || username.includes(searchTerm)) {
+                    contact.style.display = 'flex';
+                } else {
+                    contact.style.display = 'none';
+                }
+            });
+        });
 
+        // وظيفة مساعدة لإظهار الشاشة المطلوبة
+        function showScreen(screen) {
+            loginScreen.classList.add('hidden');
+            registerScreen.classList.add('hidden');
+            chatScreen.classList.add('hidden');
+            callScreen.classList.add('hidden');
+            
+            screen.classList.remove('hidden');
+        }
 
----
-
-إذا تحب، أقدر:
-
-1. أحول هذا القالب إلى repo جاهز على GitHub (أعطيك ملف zip أو نص كامل لترفعه).
-
-
-2. أتكفل بتحسين التصميم — أُعطيك واجهة نهائية مع لوجو، خطوط عربية (Google Fonts)، وألوان مُجهزة.
-
-
-3. أضيف غرف خاصة ومحادثات 1:1 ومقاييس (message statuses، typing indicators).
-
-
-
-قل أي خيار تفضّل أبدأ فيه وسأُحدّث الملفات مباشرة هنا لتنسخها وتضعها على GitHub.
+        // تهيئة التطبيق
+        console.log('تم تحميل تطبيق الشات بنجاح!');
+    </script>
+</body>
+</html>
